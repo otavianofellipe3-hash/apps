@@ -1,0 +1,2297 @@
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+/* ============================================================
+   ÁGORA EDU — Educação Política para Escolas
+   Dark UI (inspiração DeepSeek) • Sem dados fictícios
+   Sincronização em tempo real entre dispositivos (MQTT/WebSocket)
+   ============================================================ */
+
+/* ---------- Ícones (apenas símbolos SVG) ---------- */
+const Ico = ({ children, size = 18, className = "", style, stroke = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" className={className} style={style}>
+    {children}
+  </svg>
+);
+const IconGrid = (p) => <Ico {...p}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></Ico>;
+const IconMonitor = (p) => <Ico {...p}><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></Ico>;
+const IconScale = (p) => <Ico {...p}><path d="M12 3v18M7 21h10M5 7h14M5 7 2 13a3.5 3.5 0 0 0 6 0L5 7zm14 0-3 6a3.5 3.5 0 0 0 6 0l-3-6z"/></Ico>;
+const IconHelp = (p) => <Ico {...p}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></Ico>;
+const IconChart = (p) => <Ico {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></Ico>;
+const IconShield = (p) => <Ico {...p}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></Ico>;
+const IconAward = (p) => <Ico {...p}><circle cx="12" cy="8" r="6"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></Ico>;
+const IconLayers = (p) => <Ico {...p}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></Ico>;
+const IconDroplet = (p) => <Ico {...p}><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></Ico>;
+const IconMic = (p) => <Ico {...p}><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></Ico>;
+const IconSend = (p) => <Ico {...p}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></Ico>;
+const IconUp = (p) => <Ico {...p}><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></Ico>;
+const IconCheck = (p) => <Ico {...p}><polyline points="20 6 9 17 4 12"/></Ico>;
+const IconX = (p) => <Ico {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Ico>;
+const IconFlag = (p) => <Ico {...p}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></Ico>;
+const IconClock = (p) => <Ico {...p}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></Ico>;
+const IconUsers = (p) => <Ico {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></Ico>;
+const IconZap = (p) => <Ico {...p}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></Ico>;
+const IconBell = (p) => <Ico {...p}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></Ico>;
+const IconMsg = (p) => <Ico {...p}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></Ico>;
+const IconArrow = (p) => <Ico {...p}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></Ico>;
+const IconChevDown = (p) => <Ico {...p}><polyline points="6 9 12 15 18 12"/></Ico>;
+const IconPlay = (p) => <Ico {...p}><polygon points="5 3 19 12 5 21 5 3"/></Ico>;
+const IconEye = (p) => <Ico {...p}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></Ico>;
+const IconEyeOff = (p) => <Ico {...p}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></Ico>;
+const IconBook = (p) => <Ico {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></Ico>;
+const IconCopy = (p) => <Ico {...p}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></Ico>;
+const IconLogout = (p) => <Ico {...p}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></Ico>;
+const IconPlus = (p) => <Ico {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Ico>;
+const IconTrash = (p) => <Ico {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Ico>;
+const IconWifi = (p) => <Ico {...p}><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></Ico>;
+const IconWifiOff = (p) => <Ico {...p}><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/><path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/><path d="M10.71 5.05A16 16 0 0 1 22.58 9"/><path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></Ico>;
+
+const GoogleG = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 48 48">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+  </svg>
+);
+
+/* ---------- Tokens ---------- */
+const T = {
+  bg: "#0B0E15", surface: "#11151F", surface2: "#161C2A", border: "#1F2635",
+  accent: "#4D6BFE", accentSoft: "#6C8CFF", accentDim: "rgba(77,107,254,.12)",
+  text: "#E8EBF2", muted: "#8B94A8", faint: "#5A6376",
+  favor: "#4D6BFE", contra: "#F5A524", ok: "#34D399", danger: "#F16A5E",
+};
+
+/* ---------- Helpers ---------- */
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const fmtClock = (s) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+const fmtWhen = (ts) => {
+  const d = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (d < 60) return "agora";
+  if (d < 3600) return `há ${Math.floor(d / 60)} min`;
+  return `há ${Math.floor(d / 3600)} h`;
+};
+const toggleVoter = (voters, userId, on) => {
+  const nv = { ...(voters || {}) };
+  if (on) nv[userId] = 1; else delete nv[userId];
+  return nv;
+};
+const voteCount = (voters) => Object.keys(voters || {}).length;
+const genRoomCode = () => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c = ""; for (let i = 0; i < 4; i++) c += chars[Math.floor(Math.random() * chars.length)];
+  return `AGX-${c}`;
+};
+const loadUsers = () => { try { return JSON.parse(localStorage.getItem("agoraedu_users") || "[]"); } catch (e) { return []; } };
+const saveUsers = (u) => localStorage.setItem("agoraedu_users", JSON.stringify(u));
+const loadSession = () => { try { return JSON.parse(localStorage.getItem("agoraedu_session") || "null"); } catch (e) { return null; } };
+const saveSession = (s) => { if (s) localStorage.setItem("agoraedu_session", JSON.stringify(s)); else localStorage.removeItem("agoraedu_session"); };
+const loadRoomState = (room) => { try { return JSON.parse(localStorage.getItem(`agoraedu_room_${room}`) || "null"); } catch (e) { return null; } };
+const saveRoomState = (room, data, rev) => { try { localStorage.setItem(`agoraedu_room_${room}`, JSON.stringify({ data, rev })); } catch (e) {} };
+const getCid = () => { let c = localStorage.getItem("agoraedu_cid"); if (!c) { c = uid(); localStorage.setItem("agoraedu_cid", c); } return c; };
+const loadMyXp = (userId) => { try { return parseInt(localStorage.getItem(`agoraedu_xp_${userId}`) || "0", 10); } catch (e) { return 0; } };
+const saveMyXp = (userId, xp) => localStorage.setItem(`agoraedu_xp_${userId}`, String(xp));
+
+const XP_LEVELS = [
+  { min: 0, name: "Cidadão Iniciante" },
+  { min: 250, name: "Cidadão Ativo" },
+  { min: 600, name: "Cidadão Analista" },
+  { min: 1200, name: "Cidadão Plenário" },
+];
+const levelOf = (xp) => { let l = XP_LEVELS[0], idx = 0; XP_LEVELS.forEach((v, i) => { if (xp >= v.min) { l = v; idx = i; } }); return { ...l, idx, next: XP_LEVELS[idx + 1] || null }; };
+
+/* ---------- Estado compartilhado (event-sourcing) ---------- */
+const emptyData = () => ({
+  lecture: null, debate: null, args: [], questions: [], polls: [],
+  chat: [], reactions: {}, reports: [], mutes: {}, modLog: [], xpBoard: {},
+});
+
+function applyEvent(s, ev) {
+  const p = ev.payload || {};
+  const d = { ...s };
+  switch (ev.type) {
+    case "lecture_start": d.lecture = p.lecture; break;
+    case "lecture_end": d.lecture = null; break;
+    case "debate_start": d.debate = p.debate; break;
+    case "debate_extend": d.debate = d.debate ? { ...d.debate, endsAt: p.endsAt, round: p.round ?? d.debate.round } : null; break;
+    case "debate_end": d.debate = null; break;
+    case "arg_add": if (!d.args.some((a) => a.id === p.arg.id)) d.args = [...d.args, p.arg]; break;
+    case "arg_vote": d.args = d.args.map((a) => a.id === p.argId ? { ...a, voters: toggleVoter(a.voters, p.userId, p.on) } : a); break;
+    case "q_add": if (!d.questions.some((q) => q.id === p.q.id)) d.questions = [...d.questions, p.q]; break;
+    case "q_vote": d.questions = d.questions.map((q) => q.id === p.qid ? { ...q, voters: toggleVoter(q.voters, p.userId, p.on) } : q); break;
+    case "q_answer": d.questions = d.questions.map((q) => (q.id === p.qid && !q.answers.some((a) => a.id === p.answer.id)) ? { ...q, answers: [...q.answers, p.answer] } : q); break;
+    case "a_vote": d.questions = d.questions.map((q) => q.id === p.qid ? { ...q, answers: q.answers.map((a) => a.id === p.aid ? { ...a, voters: toggleVoter(a.voters, p.userId, p.on) } : a) } : q); break;
+    case "q_status": d.questions = d.questions.map((q) => q.id === p.qid ? { ...q, status: p.status } : q); break;
+    case "q_remove": d.questions = d.questions.filter((q) => q.id !== p.qid); break;
+    case "poll_add": if (!d.polls.some((x) => x.id === p.poll.id)) d.polls = [p.poll, ...d.polls]; break;
+    case "poll_vote": d.polls = d.polls.map((x) => x.id === p.pollId ? { ...x, options: x.options.map((o, i) => i === p.idx ? { ...o, voters: toggleVoter(o.voters, p.userId, true) } : o) } : x); break;
+    case "poll_close": d.polls = d.polls.map((x) => x.id === p.pollId ? { ...x, closed: true } : x); break;
+    case "poll_remove": d.polls = d.polls.filter((x) => x.id !== p.pollId); break;
+    case "chat_add": if (!d.chat.some((m) => m.id === p.msg.id)) d.chat = [...d.chat.slice(-120), p.msg]; break;
+    case "chat_remove": d.chat = d.chat.filter((m) => m.id !== p.msgId); break;
+    case "react": d.reactions = { ...d.reactions, [p.key]: toggleVoter(d.reactions[p.key], p.userId, p.on) }; break;
+    case "report_add": if (!d.reports.some((r) => r.id === p.report.id)) d.reports = [p.report, ...d.reports]; break;
+    case "report_resolve": d.reports = d.reports.map((r) => r.id === p.reportId ? { ...r, handled: p.action } : r); break;
+    case "mute_set": d.mutes = { ...d.mutes, [p.userId]: p.muted }; break;
+    case "mod_log_add": d.modLog = [p.entry, ...d.modLog].slice(0, 40); break;
+    case "xp_set": d.xpBoard = { ...d.xpBoard, [p.userId]: { userId: p.userId, name: p.name, turma: p.turma, xp: p.xp } }; break;
+    default: return s;
+  }
+  return d;
+}
+
+/* ---------- MQTT em tempo real ---------- */
+const BROKERS = ["wss://broker.emqx.io:8084/mqtt", "wss://broker.hivemq.com:8884/mqtt"];
+let mqttLibPromise = null;
+function loadMqttLib() {
+  if (window.mqtt) return Promise.resolve(window.mqtt);
+  if (!mqttLibPromise) {
+    mqttLibPromise = new Promise((res, rej) => {
+      const sc = document.createElement("script");
+      sc.src = "https://cdn.jsdelivr.net/npm/mqtt@5.10.2/dist/mqtt.min.js";
+      sc.onload = () => res(window.mqtt);
+      sc.onerror = () => rej(new Error("mqtt-load-failed"));
+      document.head.appendChild(sc);
+    });
+  }
+  return mqttLibPromise;
+}
+function tryConnectBroker(lib, url, clientId) {
+  return new Promise((res, rej) => {
+    let settled = false;
+    let c;
+    try { c = lib.connect(url, { clientId, keepalive: 30, reconnectPeriod: 4000, connectTimeout: 8000, clean: true }); }
+    catch (e) { return rej(e); }
+    const to = setTimeout(() => { if (!settled) { settled = true; try { c.end(true); } catch (e) {} rej(new Error("timeout")); } }, 9000);
+    c.once("connect", () => { if (!settled) { settled = true; clearTimeout(to); res(c); } });
+    c.once("error", (e) => { if (!settled) { settled = true; clearTimeout(to); try { c.end(true); } catch (_) {} rej(e); } });
+  });
+}
+
+function useRoomSync(room, me, onRemoteEvent, getSnap) {
+  const [status, setStatus] = useState("connecting");
+  const [peers, setPeers] = useState({});
+  const clientRef = useRef(null);
+  const onEvRef = useRef(onRemoteEvent); onEvRef.current = onRemoteEvent;
+  const snapRef = useRef(getSnap); snapRef.current = getSnap;
+  const lastSnapSent = useRef(0);
+  const meRef = useRef(me); meRef.current = me;
+
+  useEffect(() => {
+    let cancelled = false;
+    let client = null;
+    let pingTimer = null, pruneTimer = null;
+    const base = `agoraedu/v1/${room}`;
+    const cid = getCid();
+
+    const rawPublish = (m) => {
+      try {
+        if (client && client.connected) {
+          client.publish(`${base}/ev`, JSON.stringify({ ...m, from: cid, name: meRef.current.name, role: meRef.current.role, ts: Date.now() }));
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    };
+
+    (async () => {
+      let lib;
+      try { lib = await loadMqttLib(); } catch (e) { if (!cancelled) setStatus("offline"); return; }
+      for (const url of BROKERS) {
+        if (cancelled) return;
+        try { client = await tryConnectBroker(lib, url, `agx-${cid}-${Math.random().toString(36).slice(2, 6)}`); break; }
+        catch (e) { client = null; }
+      }
+      if (cancelled) { if (client) { try { client.end(true); } catch (e) {} } return; }
+      if (!client) { setStatus("offline"); return; }
+      clientRef.current = client;
+      setStatus("online");
+
+      client.subscribe([`${base}/ev`, `${base}/pres`]);
+      client.on("message", (topic, buf) => {
+        try {
+          const m = JSON.parse(buf.toString());
+          if (String(topic).endsWith("/pres")) {
+            if (m.cid !== cid) setPeers((prev) => ({ ...prev, [m.cid]: { name: m.name, role: m.role, uid: m.uid, turma: m.turma, ts: Date.now() } }));
+            return;
+          }
+          if (m.from === cid) return;
+          if (m.type === "snap_req") {
+            const now = Date.now();
+            if (now - lastSnapSent.current > 5000 && snapRef.current) {
+              const snap = snapRef.current();
+              if (snap && snap.rev > 0) {
+                lastSnapSent.current = now;
+                setTimeout(() => rawPublish({ id: uid(), type: "snap", payload: { data: snap.data, rev: snap.rev } }), Math.floor(Math.random() * 700));
+              }
+            }
+            return;
+          }
+          onEvRef.current(m);
+        } catch (e) {}
+      });
+
+      const ping = () => {
+        try {
+          if (client && client.connected) client.publish(`${base}/pres`, JSON.stringify({ cid, uid: meRef.current.id, name: meRef.current.name, role: meRef.current.role, turma: meRef.current.turma || "", ts: Date.now() }));
+        } catch (e) {}
+      };
+      ping();
+      pingTimer = setInterval(ping, 8000);
+      pruneTimer = setInterval(() => setPeers((prev) => {
+        const next = {};
+        for (const k in prev) if (Date.now() - prev[k].ts < 24000) next[k] = prev[k];
+        return next;
+      }), 6000);
+
+      setTimeout(() => rawPublish({ id: uid(), type: "snap_req", payload: {} }), 700);
+
+      client.on("close", () => { if (!cancelled) setStatus("reconnecting"); });
+      client.on("offline", () => { if (!cancelled) setStatus("reconnecting"); });
+      client.on("connect", () => { if (!cancelled) { setStatus("online"); ping(); try { client.subscribe([`${base}/ev`, `${base}/pres`]); } catch (e) {} } });
+      client.on("error", () => {});
+    })();
+
+    return () => {
+      cancelled = true;
+      if (pingTimer) clearInterval(pingTimer);
+      if (pruneTimer) clearInterval(pruneTimer);
+      if (client) { try { client.end(true); } catch (e) {} }
+      clientRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room]);
+
+  const publish = useCallback((msg) => {
+    try {
+      const c = clientRef.current;
+      if (c && c.connected) {
+        c.publish(`agoraedu/v1/${room}/ev`, JSON.stringify({ ...msg, from: getCid(), name: meRef.current.name, role: meRef.current.role, ts: Date.now() }));
+        return true;
+      }
+    } catch (e) {}
+    return false;
+  }, [room]);
+
+  const participantCount = Object.keys(peers).length + 1;
+  return { status, peers, participantCount, publish };
+}
+
+/* ---------- UI base ---------- */
+const Avatar = ({ name, size = 36, ring }) => {
+  const safe = (name || "?").trim();
+  const ini = safe.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
+  const hue = (safe.charCodeAt(0) * 37 + safe.length * 91) % 60;
+  return (
+    <div style={{
+      width: size, height: size, minWidth: size, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+      background: `linear-gradient(135deg, hsl(${220 + (hue % 30)}, 70%, 40%), hsl(${200 + hue}, 85%, 56%))`,
+      color: "#fff", fontSize: size * 0.36, fontWeight: 700,
+      boxShadow: ring ? `0 0 0 2px ${T.bg}, 0 0 0 4px ${T.accent}` : "0 2px 8px rgba(0,0,0,.4)",
+    }}>{ini}</div>
+  );
+};
+
+const Pill = ({ children, color = T.accent, bg }) => (
+  <span style={{ color, background: bg || `${color}1F`, border: `1px solid ${color}40` }}
+    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold tracking-wide whitespace-nowrap">
+    {children}
+  </span>
+);
+
+const Card = ({ children, className = "", style }) => (
+  <div className={`rounded-2xl border bg-[#11151F] ${className}`} style={{ borderColor: T.border, ...style }}>{children}</div>
+);
+
+const Btn = ({ children, variant = "primary", size = "md", onClick, className = "", disabled, type = "button" }) => {
+  const sizes = { sm: "px-3 py-1.5 text-xs", md: "px-4 py-2 text-sm", lg: "px-5 py-2.5 text-sm" };
+  const variants = {
+    primary: "text-white hover:brightness-110 shadow-[0_4px_20px_rgba(77,107,254,.35)]",
+    ghost: "text-[#8B94A8] hover:text-[#E8EBF2] hover:bg-[#161C2A] border",
+    danger: "text-white bg-[#F16A5E] hover:brightness-110",
+    ok: "text-[#0B0E15] bg-[#34D399] hover:brightness-110",
+    warn: "text-[#0B0E15] bg-[#F5A524] hover:brightness-110",
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[.97] ${sizes[size]} ${variants[variant]} ${className}`}
+      style={variant === "primary" ? { background: "linear-gradient(135deg,#4D6BFE,#6C8CFF)" } : variant === "ghost" ? { borderColor: T.border } : {}}>
+      {children}
+    </button>
+  );
+};
+
+const Input = ({ value, onChange, placeholder, disabled, onKeyDown, type = "text", textarea, rows = 2, className = "" }) => {
+  const Comp = textarea ? "textarea" : "input";
+  return (
+    <Comp value={value} type={type} rows={rows} disabled={disabled} onKeyDown={onKeyDown}
+      onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+      className={`w-full rounded-xl px-4 py-3 text-sm border outline-none transition-colors placeholder:text-[#5A6376] focus:border-[#4D6BFE] disabled:opacity-50 resize-none ${className}`}
+      style={{ background: "#0B0E15", borderColor: T.border, color: T.text }} />
+  );
+};
+
+const SectionTitle = ({ icon, title, sub, right }) => (
+  <div className="flex items-start justify-between mb-5 gap-3 flex-wrap">
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[#6C8CFF] shrink-0" style={{ background: T.accentDim, border: `1px solid ${T.accent}33` }}>{icon}</div>
+      <div className="min-w-0">
+        <h2 className="text-base sm:text-lg font-bold text-[#E8EBF2] tracking-tight truncate">{title}</h2>
+        {sub && <p className="text-xs text-[#8B94A8] mt-0.5">{sub}</p>}
+      </div>
+    </div>
+    {right}
+  </div>
+);
+
+const Empty = ({ icon, title, sub, action }) => (
+  <div className="text-center py-12 px-4">
+    <div className="w-14 h-14 rounded-2xl mx-auto flex items-center justify-center mb-4 text-[#3D465C]" style={{ background: T.surface2, border: `1px solid ${T.border}` }}>{icon}</div>
+    <div className="text-sm font-bold text-[#B8C0D0]">{title}</div>
+    {sub && <p className="text-xs text-[#5A6376] mt-1.5 max-w-sm mx-auto leading-relaxed">{sub}</p>}
+    {action && <div className="mt-4 flex justify-center">{action}</div>}
+  </div>
+);
+
+const Countdown = ({ endsAt, urgentBelow = 60 }) => {
+  const [left, setLeft] = useState(() => Math.max(0, Math.floor((endsAt - Date.now()) / 1000)));
+  useEffect(() => {
+    setLeft(Math.max(0, Math.floor((endsAt - Date.now()) / 1000)));
+    const t = setInterval(() => setLeft(Math.max(0, Math.floor((endsAt - Date.now()) / 1000))), 1000);
+    return () => clearInterval(t);
+  }, [endsAt]);
+  const urgent = left <= urgentBelow && left > 0;
+  return (
+    <span className="font-extrabold" style={{ color: urgent ? T.danger : "inherit", fontVariantNumeric: "tabular-nums", fontFamily: "'JetBrains Mono', monospace" }}>
+      {left <= 0 ? "00:00" : fmtClock(left)}
+    </span>
+  );
+};
+
+const Elapsed = ({ since }) => {
+  const [s, setS] = useState(() => Math.floor((Date.now() - since) / 1000));
+  useEffect(() => { const t = setInterval(() => setS(Math.floor((Date.now() - since) / 1000)), 1000); return () => clearInterval(t); }, [since]);
+  return <span style={{ fontVariantNumeric: "tabular-nums", fontFamily: "'JetBrains Mono', monospace" }}>{fmtClock(s)}</span>;
+};
+
+/* ---------- Chat com bolinha de novas mensagens (sem rolar a página) ---------- */
+const ChatBox = ({ messages, me, onSend, onReport, muted, height = 380 }) => {
+  const boxRef = useRef(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const [unseen, setUnseen] = useState(0);
+  const [text, setText] = useState("");
+  const lastCount = useRef(messages.length);
+
+  useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    if (messages.length > lastCount.current) {
+      if (atBottom) el.scrollTop = el.scrollHeight;
+      else setUnseen((u) => u + (messages.length - lastCount.current));
+    }
+    lastCount.current = messages.length;
+  }, [messages, atBottom]);
+
+  const handleScroll = () => {
+    const el = boxRef.current;
+    if (!el) return;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (dist < 56) { setAtBottom(true); setUnseen(0); }
+    else setAtBottom(false);
+  };
+  const jumpToBottom = () => {
+    const el = boxRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    setAtBottom(true); setUnseen(0);
+  };
+  const submit = () => {
+    const v = text.trim();
+    if (!v || muted) return;
+    onSend(v); setText("");
+    setAtBottom(true); setUnseen(0);
+    requestAnimationFrame(() => { const el = boxRef.current; if (el) el.scrollTop = el.scrollHeight; });
+  };
+
+  return (
+    <Card className="flex flex-col overflow-hidden" style={{ height }}>
+      <div className="px-4 py-3 border-b flex items-center justify-between shrink-0" style={{ borderColor: T.border }}>
+        <div className="flex items-center gap-2"><IconMsg size={15} className="text-[#6C8CFF]" /><span className="text-sm font-bold">Chat ao vivo</span></div>
+        <Pill color={T.ok}><span className="w-1.5 h-1.5 rounded-full bg-[#34D399] animate-pulse" />Moderado</Pill>
+      </div>
+      <div className="flex-1 relative min-h-0">
+        <div ref={boxRef} onScroll={handleScroll} className="absolute inset-0 overflow-y-auto p-4 space-y-3">
+          {messages.length === 0 && (
+            <div className="text-center text-[11px] text-[#5A6376] pt-8 px-4 leading-relaxed">
+              Nenhuma mensagem ainda. Seja a primeira pessoa a comentar — as mensagens aparecem aqui em tempo real para todos os dispositivos da sala.
+            </div>
+          )}
+          {messages.map((m) => (
+            <div key={m.id} className="flex items-start gap-2.5 group">
+              <Avatar name={m.author} size={26} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-bold text-[#93AAFF]">{m.author}{m.authorId === me.id ? " (você)" : ""}</span>
+                  <span className="text-[9px] text-[#3D465C]">{fmtWhen(m.ts)}</span>
+                  {m.authorId !== me.id && (
+                    <button onClick={() => onReport(m)} title="Denunciar" className="opacity-0 group-hover:opacity-100 transition-opacity text-[#5A6376] hover:text-[#F16A5E] ml-auto shrink-0">
+                      <IconFlag size={12} />
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-[#B8C0D0] leading-relaxed break-words">{m.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Bolinha minimalista de novas mensagens */}
+        <AnimatePresence>
+          {!atBottom && unseen > 0 && (
+            <motion.button initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}
+              onClick={jumpToBottom} title="Novas mensagens"
+              className="absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center shadow-lg z-10"
+              style={{ background: T.accent, color: "#fff", boxShadow: "0 4px 18px rgba(77,107,254,.5)" }}>
+              <IconChevDown size={16} />
+              {unseen > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-[#F16A5E] text-white text-[9px] font-extrabold flex items-center justify-center">{unseen > 9 ? "9+" : unseen}</span>
+              )}
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+      <div className="p-3 border-t shrink-0" style={{ borderColor: T.border }}>
+        <div className="flex gap-2">
+          <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} disabled={muted}
+            placeholder={muted ? "Você foi silenciado pela moderação" : "Mensagem no chat…"}
+            className="flex-1 min-w-0 rounded-xl px-3.5 py-2.5 text-xs border outline-none focus:border-[#4D6BFE] placeholder:text-[#5A6376] disabled:opacity-50"
+            style={{ background: "#0B0E15", borderColor: T.border, color: T.text }} />
+          <Btn size="sm" onClick={submit} disabled={muted || !text.trim()}><IconSend size={13} /></Btn>
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+/* ============================================================
+   AUTENTICAÇÃO
+   ============================================================ */
+const AuthScreen = ({ onAuth, googleReturn }) => {
+  const [mode, setMode] = useState(googleReturn ? "register" : "login");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [pass2, setPass2] = useState("");
+  const [role, setRole] = useState("student");
+  const [turma, setTurma] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    if (googleReturn) {
+      setNotice("Retorno do Google concluído. Complete seu cadastro para entrar no ÁgoraEDU com a conta Google conectada.");
+    }
+  }, [googleReturn]);
+
+  const strength = useMemo(() => {
+    let sc = 0;
+    if (pass.length >= 6) sc++;
+    if (pass.length >= 10) sc++;
+    if (/[0-9]/.test(pass)) sc++;
+    if (/[^A-Za-z0-9]/.test(pass)) sc++;
+    return sc;
+  }, [pass]);
+
+  const validateEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    setError("");
+    const users = loadUsers();
+    const u = users.find((x) => x.email.toLowerCase() === email.trim().toLowerCase());
+    if (!u || u.pass !== pass) { setError("E-mail ou senha incorretos. Verifique e tente novamente."); return; }
+    onAuth({ ...u, viaGoogleReturn: false });
+  };
+
+  const handleRegister = (e) => {
+    e.preventDefault();
+    setError("");
+    if (name.trim().length < 3) { setError("Informe seu nome completo (mínimo 3 caracteres)."); return; }
+    if (!validateEmail(email)) { setError("Informe um e-mail válido."); return; }
+    const users = loadUsers();
+    if (users.some((x) => x.email.toLowerCase() === email.trim().toLowerCase())) { setError("Já existe uma conta com este e-mail. Faça login."); return; }
+    if (pass.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
+    if (pass !== pass2) { setError("As senhas não coincidem."); return; }
+    const u = { id: uid(), name: name.trim(), email: email.trim(), pass, role, turma: turma.trim(), google: !!googleReturn, createdAt: Date.now() };
+    saveUsers([...users, u]);
+    onAuth(u);
+  };
+
+  const googleSignIn = () => {
+    const back = `${window.location.origin}${window.location.pathname}?gauth=1`;
+    try { sessionStorage.setItem("agoraedu_gauth", "1"); } catch (e) {}
+    window.location.href = `https://accounts.google.com/ServiceLogin?hl=pt-BR&continue=${encodeURIComponent(back)}`;
+  };
+
+  const labelCls = "text-[10px] font-bold tracking-widest uppercase text-[#5A6376] mb-1.5 block";
+  const inputCls = "w-full rounded-xl px-4 py-3 text-sm border outline-none transition-colors placeholder:text-[#5A6376] focus:border-[#4D6BFE]";
+  const inputStyle = { background: "#0B0E15", borderColor: T.border, color: T.text };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ background: T.bg }}>
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 60% at 50% -10%, rgba(77,107,254,.22), transparent 60%), radial-gradient(ellipse 40% 50% at 90% 110%, rgba(108,140,255,.08), transparent 60%)" }} />
+      <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="relative w-full max-w-md">
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <div className="w-11 h-11 rounded-2xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#4D6BFE,#6C8CFF)" }}>
+            <IconScale size={22} className="text-white" />
+          </div>
+          <div>
+            <div className="font-extrabold text-lg tracking-tight text-center">Ágora<span style={{ color: T.accentSoft }}>EDU</span></div>
+            <div className="text-[10px] text-[#5A6376] font-semibold tracking-widest uppercase text-center">Educação Política</div>
+          </div>
+        </div>
+
+        <Card className="p-6 sm:p-7" style={{ boxShadow: "0 24px 80px rgba(0,0,0,.5)" }}>
+          <div className="flex rounded-xl p-1 gap-1 mb-6" style={{ background: "#0B0E15", border: `1px solid ${T.border}` }}>
+            {[["login", "Entrar"], ["register", "Criar conta"]].map(([m, l]) => (
+              <button key={m} type="button" onClick={() => { setMode(m); setError(""); }}
+                className="flex-1 py-2 rounded-lg text-xs font-bold transition-all"
+                style={mode === m ? { background: T.accent, color: "#fff" } : { color: T.muted }}>
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {notice && (
+            <div className="mb-4 p-3 rounded-xl text-[11px] leading-relaxed border" style={{ background: `${T.accent}14`, borderColor: `${T.accent}44`, color: "#93AAFF" }}>
+              {notice}
+            </div>
+          )}
+          {googleReturn && mode === "login" && (
+            <div className="mb-4 p-3 rounded-xl text-[11px] border" style={{ background: `${T.ok}12`, borderColor: `${T.ok}44`, color: T.ok }}>
+              Você voltou do Google. Se já possui conta, entre normalmente; caso contrário, conclua o cadastro.
+            </div>
+          )}
+
+          {mode === "login" ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className={labelCls}>E-mail</label>
+                <input className={inputCls} style={inputStyle} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@escola.edu.br" autoComplete="email" required />
+              </div>
+              <div>
+                <label className={labelCls}>Senha</label>
+                <div className="relative">
+                  <input className={`${inputCls} pr-11`} style={inputStyle} type={showPass ? "text" : "password"} value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Sua senha" autoComplete="current-password" required />
+                  <button type="button" onClick={() => setShowPass((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5A6376] hover:text-[#8B94A8] transition-colors">
+                    {showPass ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-xl text-[11px] font-semibold border" style={{ background: `${T.danger}12`, borderColor: `${T.danger}44`, color: "#FF8A80" }}>
+                  {error}
+                </div>
+              )}
+
+              <button type="submit" className="w-full inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 active:scale-[.97] px-5 py-3 text-sm text-white shadow-[0_4px_20px_rgba(77,107,254,.35)]"
+                style={{ background: "linear-gradient(135deg,#4D6BFE,#6C8CFF)" }}>
+                Entrar <IconArrow size={15} />
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div>
+                <label className={labelCls}>Nome completo</label>
+                <input className={inputCls} style={inputStyle} value={name} onChange={(e) => setName(e.target.value)} placeholder="Como você será identificado na sala" autoComplete="name" required />
+              </div>
+              <div>
+                <label className={labelCls}>Papel na escola</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[["student", "Estudante"], ["teacher", "Professor"], ["coordinator", "Coordenador"]].map(([r, l]) => (
+                    <button key={r} type="button" onClick={() => setRole(r)}
+                      className="py-2.5 rounded-xl text-[11px] font-bold border transition-all"
+                      style={role === r ? { borderColor: T.accent, background: T.accentDim, color: T.accentSoft } : { borderColor: T.border, background: "#0B0E15", color: T.muted }}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {role === "student" && (
+                <div>
+                  <label className={labelCls}>Turma (opcional)</label>
+                  <input className={inputCls} style={inputStyle} value={turma} onChange={(e) => setTurma(e.target.value)} placeholder="Ex.: 3º A" />
+                </div>
+              )}
+              <div>
+                <label className={labelCls}>E-mail</label>
+                <input className={inputCls} style={inputStyle} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@escola.edu.br" autoComplete="email" required />
+              </div>
+              <div>
+                <label className={labelCls}>Senha</label>
+                <div className="relative">
+                  <input className={`${inputCls} pr-11`} style={inputStyle} type={showPass ? "text" : "password"} value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Mínimo de 6 caracteres" autoComplete="new-password" required />
+                  <button type="button" onClick={() => setShowPass((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5A6376] hover:text-[#8B94A8] transition-colors">
+                    {showPass ? <IconEyeOff size={16} /> : <IconEye size={16} />}
+                  </button>
+                </div>
+                {pass.length > 0 && (
+                  <div className="flex gap-1.5 mt-2">
+                    {[0, 1, 2, 3].map((i) => (
+                      <span key={i} className="h-1 flex-1 rounded-full transition-colors" style={{ background: i < strength ? (strength <= 1 ? T.danger : strength <= 2 ? T.contra : strength === 3 ? T.accentSoft : T.ok) : "#1F2635" }} />
+                    ))}
+                    <span className="text-[9px] font-bold text-[#5A6376] w-16 text-right">{["Fraca", "Fraca", "Média", "Boa", "Forte"][strength]}</span>
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className={labelCls}>Confirmar senha</label>
+                <input className={inputCls} style={inputStyle} type={showPass ? "text" : "password"} value={pass2} onChange={(e) => setPass2(e.target.value)} placeholder="Repita a senha" autoComplete="new-password" required />
+              </div>
+
+              {error && (
+                <div className="p-3 rounded-xl text-[11px] font-semibold border" style={{ background: `${T.danger}12`, borderColor: `${T.danger}44`, color: "#FF8A80" }}>
+                  {error}
+                </div>
+              )}
+
+              <button type="submit" className="w-full inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-200 active:scale-[.97] px-5 py-3 text-sm text-white shadow-[0_4px_20px_rgba(77,107,254,.35)]"
+                style={{ background: "linear-gradient(135deg,#4D6BFE,#6C8CFF)" }}>
+                Criar conta e entrar <IconArrow size={15} />
+              </button>
+            </form>
+          )}
+
+          <div className="flex items-center gap-3 my-5">
+            <span className="flex-1 h-px" style={{ background: T.border }} />
+            <span className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376]">ou</span>
+            <span className="flex-1 h-px" style={{ background: T.border }} />
+          </div>
+
+          <button type="button" onClick={googleSignIn}
+            className="w-full flex items-center justify-center gap-3 py-3 rounded-xl border text-sm font-semibold text-[#E8EBF2] transition-all hover:border-[#4D6BFE88] active:scale-[.98]"
+            style={{ background: "#0B0E15", borderColor: T.border }}>
+            <GoogleG size={18} /> Continuar com o Google
+          </button>
+          <p className="text-[10px] text-[#5A6376] mt-2.5 leading-relaxed text-center">
+            Você será direcionado ao login do Google e retornará automaticamente ao app após a autenticação.
+          </p>
+        </Card>
+        <p className="text-center text-[10px] text-[#3D465C] mt-5">Ao continuar, você aceita o Pacto de Convivência Democrática da sua escola.</p>
+      </motion.div>
+    </div>
+  );
+};
+
+/* ============================================================
+   SALA (código de sincronização entre dispositivos)
+   ============================================================ */
+const RoomGate = ({ session, onJoin, onLogout }) => {
+  const [joinCode, setJoinCode] = useState("");
+  const [createCode, setCreateCode] = useState(() => genRoomCode());
+  const [err, setErr] = useState("");
+  const inputCls = "w-full rounded-xl px-4 py-3 text-sm border outline-none focus:border-[#4D6BFE] placeholder:text-[#5A6376] tracking-widest uppercase";
+  const inputStyle = { background: "#0B0E15", borderColor: T.border, color: T.text };
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: T.bg }}>
+      <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg">
+        <Card className="p-6 sm:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Avatar name={session.name} size={42} />
+              <div>
+                <div className="text-sm font-bold">{session.name}</div>
+                <div className="text-[11px] text-[#8B94A8]">{session.role === "student" ? "Estudante" : session.role === "teacher" ? "Professor(a)" : "Coordenador(a)"}{session.turma ? ` • ${session.turma}` : ""}</div>
+              </div>
+            </div>
+            <button onClick={onLogout} className="text-[#5A6376] hover:text-[#FF8A80] transition-colors p-2" title="Sair da conta"><IconLogout size={17} /></button>
+          </div>
+
+          <h1 className="text-lg font-extrabold tracking-tight mb-1">Sala em tempo real</h1>
+          <p className="text-xs text-[#8B94A8] leading-relaxed mb-6">
+            Crie uma sala ou entre com o código compartilhado pelo professor. Todos os dispositivos na mesma sala veem palestras, debates, perguntas, respostas e enquetes sincronizados ao vivo.
+          </p>
+
+          <div className="space-y-5">
+            <div className="p-4 rounded-xl border" style={{ borderColor: `${T.accent}44`, background: T.accentDim }}>
+              <label className="text-[10px] font-bold tracking-widest uppercase text-[#6C8CFF] mb-2 block">Criar nova sala</label>
+              <div className="flex gap-2">
+                <input className={inputCls} style={inputStyle} value={createCode} onChange={(e) => setCreateCode(e.target.value.toUpperCase().slice(0, 12))} />
+                <Btn onClick={() => onJoin(createCode.trim())} disabled={createCode.trim().length < 4}><IconPlus size={14} /> Criar</Btn>
+              </div>
+              <button onClick={() => setCreateCode(genRoomCode())} className="text-[10px] text-[#5A6376] hover:text-[#93AAFF] mt-2 font-semibold transition-colors">Gerar outro código</button>
+            </div>
+
+            <div className="p-4 rounded-xl border" style={{ borderColor: T.border, background: T.surface2 }}>
+              <label className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] mb-2 block">Entrar em sala existente</label>
+              <div className="flex gap-2">
+                <input className={inputCls} style={inputStyle} placeholder="AGX-XXXX" value={joinCode} onChange={(e) => setJoinCode(e.target.value.toUpperCase().slice(0, 12))}
+                  onKeyDown={(e) => { if (e.key === "Enter" && joinCode.trim().length >= 4) onJoin(joinCode.trim()); }} />
+                <Btn variant="ghost" onClick={() => { if (joinCode.trim().length < 4) { setErr("Digite um código válido."); return; } setErr(""); onJoin(joinCode.trim()); }}>
+                  <IconArrow size={14} /> Entrar
+                </Btn>
+              </div>
+              {err && <div className="text-[11px] text-[#FF8A80] font-semibold mt-2">{err}</div>}
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+    </div>
+  );
+};
+
+/* ============================================================
+   APP SINCRONIZADO
+   ============================================================ */
+function SyncedApp({ session, onLogout, onChangeRoom }) {
+  const room = session.room;
+  const me = session;
+  const isStaff = me.role === "teacher" || me.role === "coordinator";
+
+  const stored = useRef(loadRoomState(room));
+  const [data, setData] = useState(() => (stored.current ? stored.current.data : emptyData()));
+  const revRef = useRef(stored.current ? stored.current.rev || 0 : 0);
+  const dataRef = useRef(data); dataRef.current = data;
+
+  const [tab, setTab] = useState("visao");
+  const [toast, setToast] = useState(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [userMenu, setUserMenu] = useState(false);
+  const [myXp, setMyXp] = useState(() => loadMyXp(me.id));
+  const myXpRef = useRef(myXp); myXpRef.current = myXp;
+
+  const notify = useCallback((msg, tone = "ok") => {
+    setToast({ msg, tone, id: Date.now() });
+    setTimeout(() => setToast(null), 2600);
+  }, []);
+
+  const net = useRoomSync(room, me,
+    useCallback((m) => {
+      if (m.type === "snap") {
+        const p = m.payload || {};
+        if (p.rev > revRef.current) { revRef.current = p.rev; setData(p.data || emptyData()); }
+        return;
+      }
+      revRef.current += 1;
+      setData((prev) => applyEvent(prev, m));
+    }, []),
+    useCallback(() => ({ data: dataRef.current, rev: revRef.current }), [])
+  );
+
+  const send = useCallback((type, payload) => {
+    const m = { id: uid(), type, payload };
+    revRef.current += 1;
+    setData((prev) => applyEvent(prev, m));
+    net.publish(m);
+  }, [net]);
+
+  useEffect(() => { saveRoomState(room, data, revRef.current); }, [data, room]);
+
+  /* XP próprio: publica no quadro ao entrar */
+  useEffect(() => {
+    const t = setTimeout(() => {
+      send("xp_set", { userId: me.id, name: me.name, turma: me.turma || "", xp: myXpRef.current });
+    }, 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const gainXp = useCallback((n) => {
+    setMyXp((prev) => {
+      const nx = prev + n;
+      saveMyXp(me.id, nx);
+      send("xp_set", { userId: me.id, name: me.name, turma: me.turma || "", xp: nx });
+      return nx;
+    });
+  }, [me, send]);
+
+  const iAmMuted = !!data.mutes[me.id];
+
+  /* ---------- Ações do usuário ---------- */
+  const act = {
+    startLecture: (lecture) => send("lecture_start", { lecture: { ...lecture, id: uid(), hostId: me.id, hostName: me.name, startedAt: Date.now(), live: true } }),
+    endLecture: () => send("lecture_end", {}),
+    startDebate: (deb) => send("debate_start", { debate: { ...deb, id: uid(), hostId: me.id, hostName: me.name, round: 1, startedAt: Date.now() } }),
+    extendDebate: (mins) => { if (data.debate) send("debate_extend", { endsAt: Date.now() + mins * 60000, round: (data.debate.round || 1) + 1 }); },
+    endDebate: () => send("debate_end", {}),
+    addArg: (side, text) => {
+      send("arg_add", { arg: { id: uid(), side, author: me.name, authorId: me.id, text, voters: { [me.id]: 1 }, ts: Date.now() } });
+      gainXp(10); notify("Argumento publicado (+10 XP)", "xp");
+    },
+    voteArg: (argId, on) => send("arg_vote", { argId, userId: me.id, on }),
+    addQuestion: (text) => {
+      const q = { id: uid(), author: me.name, authorId: me.id, turma: me.turma || (isStaff ? "Docente" : ""), text, status: isStaff ? "ao-vivo" : "pendente", voters: { [me.id]: 1 }, votes: undefined, answers: [], ts: Date.now() };
+      send("q_add", { q });
+      gainXp(5);
+      notify(isStaff ? "Pergunta publicada." : "Pergunta enviada para a moderação (+5 XP)", "xp");
+    },
+    voteQuestion: (qid, on) => send("q_vote", { qid, userId: me.id, on }),
+    answerQuestion: (qid, text) => {
+      send("q_answer", { qid, answer: { id: uid(), author: me.name, authorId: me.id, text, voters: { [me.id]: 1 }, ts: Date.now() } });
+      gainXp(8); notify("Resposta publicada (+8 XP)", "xp");
+    },
+    voteAnswer: (qid, aid, on) => send("a_vote", { qid, aid, userId: me.id, on }),
+    qStatus: (qid, status) => {
+      send("q_status", { qid, status });
+      send("mod_log_add", { entry: { id: uid(), action: status === "ao-vivo" ? "Pergunta aprovada" : "Pergunta marcada como respondida", who: me.name, ts: Date.now(), tone: "ok" } });
+      notify("Ação de moderação registrada.");
+    },
+    qRemove: (qid) => {
+      send("q_remove", { qid });
+      send("mod_log_add", { entry: { id: uid(), action: "Pergunta removida", who: me.name, ts: Date.now(), tone: "bad" } });
+      notify("Pergunta removida.", "warn");
+    },
+    addPoll: (question, options) => {
+      send("poll_add", { poll: { id: uid(), question, options: options.map((label) => ({ label, voters: {} })), hostName: me.name, hostId: me.id, ts: Date.now(), closed: false } });
+      notify("Enquete criada e enviada para todos os dispositivos.");
+    },
+    votePoll: (pollId, idx) => { send("poll_vote", { pollId, idx, userId: me.id }); gainXp(2); },
+    closePoll: (pollId) => send("poll_close", { pollId }),
+    removePoll: (pollId) => send("poll_remove", { pollId }),
+    sendChat: (text) => {
+      send("chat_add", { msg: { id: uid(), author: me.name, authorId: me.id, text, ts: Date.now() } });
+      const nx = myXpRef.current + 1; saveMyXp(me.id, nx); setMyXp(nx);
+      send("xp_set", { userId: me.id, name: me.name, turma: me.turma || "", xp: nx });
+    },
+    removeChat: (msgId) => {
+      send("chat_remove", { msgId });
+      send("mod_log_add", { entry: { id: uid(), action: "Mensagem de chat removida", who: me.name, ts: Date.now(), tone: "bad" } });
+    },
+    react: (key, on) => send("react", { key, userId: me.id, on }),
+    reportChat: (m) => {
+      send("report_add", { report: { id: uid(), chatId: m.id, text: m.text, author: m.author, authorId: m.authorId, reporter: me.name, ts: Date.now(), handled: null } });
+      notify("Denúncia enviada à moderação.");
+    },
+    resolveReport: (reportId, action, extra) => {
+      send("report_resolve", { reportId, action });
+      if (action === "removido" && extra?.chatId) { send("chat_remove", { msgId: extra.chatId }); }
+      if (action === "silenciado" && extra?.authorId) { send("mute_set", { userId: extra.authorId, muted: true, by: me.name }); }
+      send("mod_log_add", { entry: { id: uid(), action: `Denúncia resolvida: ${action}`, who: me.name, ts: Date.now(), tone: action === "mantido" ? "ok" : "warn" } });
+      notify(`Denúncia resolvida (${action}).`);
+    },
+    toggleMute: (userId, name, muted) => {
+      send("mute_set", { userId, muted, by: me.name });
+      send("mod_log_add", { entry: { id: uid(), action: muted ? `${name} silenciado(a)` : `${name} liberado(a) para falar`, who: me.name, ts: Date.now(), tone: muted ? "warn" : "ok" } });
+      notify(muted ? `${name} foi silenciado(a).` : `${name} pode participar novamente.`, muted ? "warn" : "ok");
+    },
+  };
+
+  /* ---------- Navegação ---------- */
+  const mainTabs = [
+    { id: "visao", label: "Visão", icon: <IconGrid size={17} /> },
+    { id: "palestra", label: "Palestra", icon: <IconMonitor size={17} /> },
+    { id: "arena", label: "Arena", icon: <IconScale size={17} /> },
+    { id: "qa", label: "Perguntas", icon: <IconHelp size={17} /> },
+    { id: "enquetes", label: "Enquetes", icon: <IconChart size={17} /> },
+  ];
+  const moreTabs = [
+    { id: "pontos", label: "Pontuação", icon: <IconAward size={17} /> },
+    ...(isStaff ? [{ id: "moderacao", label: "Moderação", icon: <IconShield size={17} /> }] : []),
+    { id: "planejamento", label: "Planejamento", icon: <IconLayers size={17} /> },
+    { id: "design", label: "Design System", icon: <IconDroplet size={17} /> },
+  ];
+  const allTabs = [...mainTabs, ...moreTabs];
+  const pendingCount = isStaff ? data.questions.filter((q) => q.status === "pendente").length + data.reports.filter((r) => !r.handled).length : 0;
+
+  const titles = {
+    visao: ["Visão Geral", `Sala ${room} • ${net.participantCount} participante(s) conectado(s)`],
+    palestra: ["Palestra ao Vivo", data.lecture ? data.lecture.title : "Nenhuma transmissão ativa"],
+    arena: ["Arena de Debate", data.debate ? data.debate.motion : "Nenhum debate ativo"],
+    qa: ["Perguntas & Respostas", "Envie, responda e vote — sincronizado em tempo real"],
+    enquetes: ["Enquetes ao Vivo", "Crie e vote; os resultados aparecem para toda a sala"],
+    moderacao: ["Central de Moderação", "Fila real de perguntas, denúncias e controles"],
+    pontos: ["Pontuação & Ranking", "XP real gerado pela participação da sala"],
+    planejamento: ["Planejamento do Projeto", "Funcionalidades • Fluxos • Arquitetura"],
+    design: ["Design System", "Cores • Tipografia • Componentes"],
+  };
+
+  const syncChip = {
+    online: { color: T.ok, label: "Tempo real ativo" },
+    reconnecting: { color: "#F5A524", label: "Reconectando…" },
+    connecting: { color: "#F5A524", label: "Conectando…" },
+    offline: { color: T.danger, label: "Modo local (sem sincronização)" },
+  }[net.status];
+
+  const NavItem = ({ item, badge }) => {
+    const active = tab === item.id;
+    return (
+      <button onClick={() => { setTab(item.id); setMoreOpen(false); }}
+        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all mb-0.5"
+        style={active ? { background: "linear-gradient(135deg, rgba(77,107,254,.18), rgba(108,140,255,.08))", color: "#93AAFF", boxShadow: `inset 0 0 0 1px ${T.accent}44` } : { color: "#8B94A8" }}
+        onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "#141926"; }}
+        onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}>
+        <span style={active ? { color: T.accentSoft } : {}}>{item.icon}</span>
+        <span className="flex-1 text-left">{item.label}</span>
+        {!!badge && <span className="w-5 h-5 rounded-full bg-[#F16A5E] text-white text-[10px] font-bold flex items-center justify-center">{badge}</span>}
+      </button>
+    );
+  };
+
+  const roomChip = (
+    <button onClick={() => { navigator.clipboard?.writeText(room).then(() => notify(`Código ${room} copiado. Compartilhe para conectar outros dispositivos.`)).catch(() => notify(`Código da sala: ${room}`)); }}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-bold transition-colors hover:border-[#4D6BFE66]"
+      style={{ borderColor: T.border, background: T.surface, color: T.accentSoft }} title="Copiar código da sala">
+      <IconCopy size={12} /> {room}
+    </button>
+  );
+
+  return (
+    <div style={{ background: T.bg, color: T.text, minHeight: "100vh", fontFamily: "'Inter', system-ui, sans-serif" }} className="flex">
+      <GlobalStyles />
+
+      {/* ============ SIDEBAR (desktop) ============ */}
+      <aside className="hidden lg:flex flex-col w-[248px] shrink-0 border-r sticky top-0 h-screen" style={{ borderColor: T.border, background: "#0D1119" }}>
+        <div className="px-5 py-5 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg,#4D6BFE,#6C8CFF)" }}>
+            <IconScale size={19} className="text-white" />
+          </div>
+          <div>
+            <div className="font-extrabold text-[15px] tracking-tight">Ágora<span style={{ color: T.accentSoft }}>EDU</span></div>
+            <div className="text-[10px] text-[#5A6376] font-medium tracking-widest uppercase">Educação Política</div>
+          </div>
+        </div>
+
+        <div className="px-5 pb-3">{roomChip}</div>
+
+        <nav className="flex-1 overflow-y-auto px-3 mt-1 space-y-5">
+          <div>
+            <div className="px-2 mb-1.5 text-[10px] font-bold tracking-widest uppercase text-[#4A5265]">Sala ao vivo</div>
+            {mainTabs.map((it) => <NavItem key={it.id} item={it} />)}
+          </div>
+          <div>
+            <div className="px-2 mb-1.5 text-[10px] font-bold tracking-widest uppercase text-[#4A5265]">{isStaff ? "Professor / Coordenação" : "Comunidade"}</div>
+            {moreTabs.map((it) => <NavItem key={it.id} item={it} badge={it.id === "moderacao" ? pendingCount : 0} />)}
+          </div>
+        </nav>
+
+        <div className="p-3">
+          <div className="rounded-xl p-3 border" style={{ background: T.surface, borderColor: T.border }}>
+            <div className="flex items-center gap-2 text-[10px] font-bold mb-2.5" style={{ color: syncChip.color }}>
+              {net.status === "offline" ? <IconWifiOff size={13} /> : <IconWifi size={13} />} {syncChip.label}
+            </div>
+            <div className="flex items-center gap-2.5">
+              <Avatar name={me.name} size={32} />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold truncate">{me.name}</div>
+                <div className="text-[10px] text-[#5A6376]">{me.role === "student" ? `Estudante${me.turma ? ` • ${me.turma}` : ""}` : me.role === "teacher" ? "Professor(a)" : "Coordenador(a)"} • {myXp} XP</div>
+              </div>
+            </div>
+            <div className="flex gap-1.5 mt-3">
+              <button onClick={onChangeRoom} className="flex-1 text-[10px] font-bold py-1.5 rounded-lg border transition-colors hover:border-[#4D6BFE66]" style={{ borderColor: T.border, color: T.muted }}>Trocar sala</button>
+              <button onClick={onLogout} className="flex-1 text-[10px] font-bold py-1.5 rounded-lg border transition-colors hover:border-[#F16A5E66] hover:text-[#FF8A80]" style={{ borderColor: T.border, color: T.muted }}>Sair</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* ============ MAIN ============ */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="sticky top-0 z-30 border-b backdrop-blur-xl" style={{ borderColor: T.border, background: "rgba(11,14,21,.85)" }}>
+          <div className="px-4 sm:px-7 h-16 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="lg:hidden w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#4D6BFE,#6C8CFF)" }}>
+                <IconScale size={16} className="text-white" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-[14px] sm:text-base font-bold truncate tracking-tight">{titles[tab][0]}</h1>
+                <p className="text-[10px] sm:text-[11px] text-[#8B94A8] truncate">{titles[tab][1]}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="hidden sm:flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1.5 rounded-full border" style={{ borderColor: `${syncChip.color}44`, color: syncChip.color, background: `${syncChip.color}12` }}>
+                {net.status === "offline" ? <IconWifiOff size={11} /> : <IconWifi size={11} />}
+                <span className="hidden md:inline">{syncChip.label}</span>
+              </span>
+              <div className="hidden md:block">{roomChip}</div>
+              {data.lecture?.live && <Pill color="#FF8A80" bg="#F16A5E1A"><span className="w-1.5 h-1.5 rounded-full bg-[#F16A5E] animate-pulse" />AO VIVO</Pill>}
+              <div className="relative">
+                <button onClick={() => setUserMenu((v) => !v)} className="block"><Avatar name={me.name} size={34} /></button>
+                <AnimatePresence>
+                  {userMenu && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setUserMenu(false)} />
+                      <motion.div initial={{ opacity: 0, y: -6, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -6, scale: .97 }}
+                        className="absolute right-0 mt-2 w-56 rounded-xl border p-2 z-50 shadow-2xl" style={{ background: T.surface2, borderColor: T.border }}>
+                        <div className="px-2 py-2 border-b mb-1" style={{ borderColor: T.border }}>
+                          <div className="text-xs font-bold truncate">{me.name}</div>
+                          <div className="text-[10px] text-[#5A6376] truncate">{me.email}</div>
+                          {me.google && <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-[#8B94A8]"><GoogleG size={11} /> Conta Google conectada</div>}
+                        </div>
+                        <button onClick={() => { setUserMenu(false); onChangeRoom(); }} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-semibold text-[#B8C0D0] hover:bg-[#0B0E15] transition-colors"><IconCopy size={13} /> Trocar de sala</button>
+                        <button onClick={() => { setUserMenu(false); onLogout(); }} className="w-full flex items-center gap-2 px-2 py-2 rounded-lg text-xs font-semibold text-[#FF8A80] hover:bg-[#F16A5E14] transition-colors"><IconLogout size={13} /> Encerrar sessão</button>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-1 px-3 sm:px-7 py-5 pb-24 lg:pb-6">
+          <AnimatePresence mode="wait">
+            <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+              {tab === "visao" && <DashboardPage data={data} me={me} isStaff={isStaff} setTab={setTab} net={net} room={room} notify={notify} myXp={myXp} act={act} />}
+              {tab === "palestra" && <LecturePage data={data} me={me} isStaff={isStaff} act={act} net={net} iAmMuted={iAmMuted} notify={notify} />}
+              {tab === "arena" && <DebatePage data={data} me={me} isStaff={isStaff} act={act} iAmMuted={iAmMuted} />}
+              {tab === "qa" && <QnAPage data={data} me={me} isStaff={isStaff} act={act} iAmMuted={iAmMuted} />}
+              {tab === "enquetes" && <PollsPage data={data} me={me} isStaff={isStaff} act={act} notify={notify} gainXp={gainXp} />}
+              {tab === "moderacao" && isStaff && <ModerationPage data={data} me={me} act={act} peers={net.peers} participantCount={net.participantCount} />}
+              {tab === "pontos" && <ScoringPage data={data} me={me} myXp={myXp} />}
+              {tab === "planejamento" && <PlanningPage setTab={setTab} />}
+              {tab === "design" && <DesignSystemPage />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+      </div>
+
+      {/* ============ BOTTOM NAV (mobile) ============ */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-xl" style={{ borderColor: T.border, background: "rgba(13,17,25,.94)" }}>
+        <div className="flex items-stretch" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+          {mainTabs.map((it) => {
+            const active = tab === it.id;
+            return (
+              <button key={it.id} onClick={() => setTab(it.id)} className="flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors"
+                style={{ color: active ? T.accentSoft : "#5A6376" }}>
+                {it.icon}
+                <span className="text-[9px] font-bold">{it.label}</span>
+                <span className="w-1 h-1 rounded-full" style={{ background: active ? T.accent : "transparent" }} />
+              </button>
+            );
+          })}
+          <button onClick={() => setMoreOpen(true)} className="flex-1 flex flex-col items-center gap-1 py-2.5 transition-colors"
+            style={{ color: moreTabs.some((m) => m.id === tab) ? T.accentSoft : "#5A6376" }}>
+            <span className="relative">
+              <IconGrid size={17} />
+              {pendingCount > 0 && <span className="absolute -top-1.5 -right-2 w-4 h-4 rounded-full bg-[#F16A5E] text-white text-[8px] font-bold flex items-center justify-center">{pendingCount}</span>}
+            </span>
+            <span className="text-[9px] font-bold">Mais</span>
+            <span className="w-1 h-1 rounded-full" style={{ background: moreTabs.some((m) => m.id === tab) ? T.accent : "transparent" }} />
+          </button>
+        </div>
+      </nav>
+
+      {/* Sheet "Mais" */}
+      <AnimatePresence>
+        {moreOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="lg:hidden fixed inset-0 bg-black/60 z-40" onClick={() => setMoreOpen(false)} />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "tween", duration: 0.25 }}
+              className="lg:hidden fixed bottom-0 inset-x-0 z-50 rounded-t-2xl border-t p-4" style={{ background: T.surface, borderColor: T.border, paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: T.border }} />
+              <div className="grid grid-cols-2 gap-2">
+                {moreTabs.map((it) => (
+                  <button key={it.id} onClick={() => { setTab(it.id); setMoreOpen(false); }}
+                    className="flex items-center gap-2.5 p-3.5 rounded-xl border text-left transition-colors"
+                    style={{ borderColor: tab === it.id ? `${T.accent}66` : T.border, background: tab === it.id ? T.accentDim : T.surface2 }}>
+                    <span style={{ color: T.accentSoft }}>{it.icon}</span>
+                    <span className="text-xs font-bold">{it.label}</span>
+                    {it.id === "moderacao" && pendingCount > 0 && <span className="ml-auto w-5 h-5 rounded-full bg-[#F16A5E] text-white text-[10px] font-bold flex items-center justify-center">{pendingCount}</span>}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button onClick={() => { setMoreOpen(false); onChangeRoom(); }} className="flex-1 py-3 rounded-xl border text-xs font-bold text-[#8B94A8]" style={{ borderColor: T.border }}>Trocar de sala</button>
+                <button onClick={() => { setMoreOpen(false); onLogout(); }} className="flex-1 py-3 rounded-xl border text-xs font-bold text-[#FF8A80]" style={{ borderColor: "#F16A5E44" }}>Encerrar sessão</button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div initial={{ opacity: 0, y: 24, scale: .95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 16 }}
+            className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-xl border shadow-2xl text-xs sm:text-sm font-semibold flex items-center gap-2 max-w-[92vw]"
+            style={{ background: "#161C2A", borderColor: toast.tone === "xp" ? T.accent : toast.tone === "warn" ? "#F5A52466" : T.border, color: T.text }}>
+            {toast.tone === "xp" ? <IconZap size={14} className="text-[#6C8CFF]" /> : toast.tone === "warn" ? <IconFlag size={14} className="text-[#F5A524]" /> : <IconCheck size={14} className="text-[#34D399]" />}
+            <span className="truncate">{toast.msg}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ============================================================
+   PÁGINA: VISÃO GERAL (dados reais)
+   ============================================================ */
+const DashboardPage = ({ data, me, isStaff, setTab, net, room, notify, myXp, act }) => {
+  const totalVotesByMe = useMemo(() => {
+    let c = 0;
+    data.args.forEach((a) => { if (a.voters?.[me.id]) c++; });
+    data.questions.forEach((q) => { if (q.voters?.[me.id]) c++; q.answers.forEach((an) => { if (an.voters?.[me.id]) c++; }); });
+    data.polls.forEach((p) => p.options.forEach((o) => { if (o.voters?.[me.id]) c++; }));
+    return c;
+  }, [data, me.id]);
+
+  const stats = [
+    { label: "Participantes na sala", value: net.participantCount, icon: <IconUsers size={16} /> },
+    { label: "Perguntas", value: data.questions.length, icon: <IconHelp size={16} /> },
+    { label: "Respostas", value: data.questions.reduce((acc, q) => acc + q.answers.length, 0), icon: <IconMsg size={16} /> },
+    { label: "Seus votos", value: totalVotesByMe, icon: <IconUp size={16} /> },
+  ];
+
+  const copyRoom = () => {
+    navigator.clipboard?.writeText(room).then(() => notify(`Código ${room} copiado.`)).catch(() => notify(`Código da sala: ${room}`));
+  };
+
+  return (
+    <div className="space-y-5 max-w-[1100px] mx-auto">
+      <Card className="overflow-hidden relative">
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 80% 120% at 20% 0%, rgba(77,107,254,.22), transparent 60%), linear-gradient(120deg,#101728,#0D1119 60%)" }} />
+        <div className="relative p-5 sm:p-7 flex flex-col md:flex-row gap-5 items-start md:items-center justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+              <Pill color={T.accentSoft}>Sala conectada</Pill>
+              <Pill color={net.status === "online" ? T.ok : net.status === "offline" ? T.danger : "#F5A524"}>
+                {net.status === "online" ? "Sincronização ativa" : net.status === "offline" ? "Modo local" : "Conectando…"}
+              </Pill>
+            </div>
+            <h2 className="text-lg sm:text-xl font-extrabold tracking-tight">Código da sala: <span className="text-[#93AAFF]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{room}</span></h2>
+            <p className="text-xs text-[#8B94A8] mt-2 leading-relaxed max-w-lg">
+              Compartilhe este código: ao entrar com ele em outro dispositivo (como estudante ou professor), palestras, debates, perguntas, respostas e enquetes aparecem sincronizados em tempo real.
+            </p>
+            <div className="flex gap-2 mt-4 flex-wrap">
+              <Btn size="sm" onClick={copyRoom}><IconCopy size={13} /> Copiar código</Btn>
+              {isStaff && <Btn size="sm" variant="ghost" onClick={() => setTab("palestra")}><IconMonitor size={13} /> Iniciar palestra</Btn>}
+              {isStaff && <Btn size="sm" variant="ghost" onClick={() => setTab("arena")}><IconScale size={13} /> Abrir debate</Btn>}
+              {!isStaff && <Btn size="sm" variant="ghost" onClick={() => setTab("qa")}><IconHelp size={13} /> Enviar pergunta</Btn>}
+            </div>
+          </div>
+          <div className="rounded-2xl border p-4 w-full md:w-52 shrink-0" style={{ borderColor: "#FFFFFF14", background: "rgba(11,14,21,.55)" }}>
+            <div className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] mb-2">Sua participação</div>
+            <div className="text-3xl font-extrabold text-[#93AAFF]" style={{ fontVariantNumeric: "tabular-nums" }}>{myXp} <span className="text-xs text-[#5A6376]">XP</span></div>
+            <div className="text-[11px] text-[#8B94A8] mt-1 font-semibold">{levelOf(myXp).name}</div>
+            <Btn size="sm" variant="ghost" className="w-full mt-3" onClick={() => setTab("pontos")}>Ver ranking <IconArrow size={12} /></Btn>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {stats.map((s) => (
+          <Card key={s.label} className="p-4">
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center text-[#6C8CFF]" style={{ background: T.accentDim }}>{s.icon}</span>
+            <div className="text-2xl font-extrabold mt-3 tracking-tight" style={{ fontVariantNumeric: "tabular-nums" }}>{s.value}</div>
+            <div className="text-[11px] font-semibold text-[#8B94A8]">{s.label}</div>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        <Card className="p-5">
+          <SectionTitle icon={<IconMonitor size={18} />} title="Palestra" sub={data.lecture ? "Transmissão ativa na sala" : "Nenhuma transmissão ativa"} />
+          {data.lecture ? (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl border" style={{ borderColor: `${T.accent}44`, background: T.accentDim }}>
+                <div className="flex items-center gap-2 mb-1"><Pill color="#FF8A80" bg="#F16A5E1A"><span className="w-1.5 h-1.5 rounded-full bg-[#F16A5E] animate-pulse" />AO VIVO</Pill><span className="text-[10px] text-[#5A6376] font-bold">iniciada <Elapsed since={data.lecture.startedAt} /></span></div>
+                <div className="text-sm font-bold">{data.lecture.title}</div>
+                <div className="text-xs text-[#8B94A8] mt-0.5">{data.lecture.speaker} • por {data.lecture.hostName}</div>
+              </div>
+              <Btn size="sm" className="w-full" onClick={() => setTab("palestra")}><IconPlay size={13} /> Entrar na transmissão</Btn>
+            </div>
+          ) : (
+            <Empty icon={<IconMonitor size={22} />} title="Nada sendo transmitido"
+              sub={isStaff ? "Inicie uma palestra ao vivo: ela aparecerá instantaneamente para todos os dispositivos da sala." : "Quando o professor ou coordenador iniciar uma palestra, ela aparecerá aqui em tempo real."}
+              action={isStaff ? <Btn size="sm" onClick={() => setTab("palestra")}><IconPlus size={13} /> Iniciar palestra</Btn> : null} />
+          )}
+        </Card>
+
+        <Card className="p-5">
+          <SectionTitle icon={<IconScale size={18} />} title="Arena de debate" sub={data.debate ? "Debate em andamento" : "Nenhum debate ativo"} />
+          {data.debate ? (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl border" style={{ borderColor: `${T.contra}44`, background: `${T.contra}0D` }}>
+                <div className="flex items-center gap-2 mb-1"><Pill color={T.contra}>Rodada {data.debate.round}</Pill><span className="text-[10px] text-[#5A6376] font-bold">turno termina em <Countdown endsAt={data.debate.endsAt} /></span></div>
+                <div className="text-sm font-bold leading-snug">{data.debate.motion}</div>
+                <div className="text-xs text-[#8B94A8] mt-1">{data.debate.favorTeam} (a favor) × {data.debate.contraTeam} (contra)</div>
+              </div>
+              <Btn size="sm" className="w-full" onClick={() => setTab("arena")}><IconScale size={13} /> Entrar na arena</Btn>
+            </div>
+          ) : (
+            <Empty icon={<IconScale size={22} />} title="Arena livre"
+              sub={isStaff ? "Crie um debate estruturado com tese, lados e tempo por turno. Todos os dispositivos acompanham o cronômetro sincronizado." : "Quando um debate for aberto pelo professor, você poderá argumentar e votar aqui."}
+              action={isStaff ? <Btn size="sm" onClick={() => setTab("arena")}><IconPlus size={13} /> Abrir debate</Btn> : null} />
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   PÁGINA: PALESTRA AO VIVO
+   ============================================================ */
+const LecturePage = ({ data, me, isStaff, act, net, iAmMuted, notify }) => {
+  const [form, setForm] = useState({ title: "", speaker: "", desc: "" });
+  const [qText, setQText] = useState("");
+  const lect = data.lecture;
+
+  const livePoll = data.polls.find((p) => !p.closed);
+  const topQuestions = [...data.questions].filter((q) => q.status !== "pendente").sort((a, b) => voteCount(b.voters) - voteCount(a.voters)).slice(0, 3);
+  const speakerIni = lect ? (lect.speaker || lect.title).split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase() : "";
+
+  const startLecture = () => {
+    if (!form.title.trim()) { notify("Informe o título da palestra.", "warn"); return; }
+    act.startLecture({ title: form.title.trim(), speaker: form.speaker.trim() || me.name, desc: form.desc.trim() });
+    notify("Transmissão iniciada para toda a sala.");
+  };
+
+  if (!lect) {
+    return (
+      <div className="max-w-[680px] mx-auto">
+        {isStaff ? (
+          <Card className="p-5 sm:p-6">
+            <SectionTitle icon={<IconMonitor size={18} />} title="Iniciar palestra ao vivo" sub="A transmissão aparece em tempo real em todos os dispositivos da sala" />
+            <div className="space-y-3">
+              <div><label className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] mb-1.5 block">Título</label>
+                <Input value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="Ex.: Democracia na prática: os Três Poderes" /></div>
+              <div><label className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] mb-1.5 block">Palestrante</label>
+                <Input value={form.speaker} onChange={(v) => setForm({ ...form, speaker: v })} placeholder={`Padrão: ${me.name}`} /></div>
+              <div><label className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] mb-1.5 block">Descrição</label>
+                <Input textarea value={form.desc} onChange={(v) => setForm({ ...form, desc: v })} placeholder="Resumo do conteúdo e objetivos da palestra" /></div>
+              <Btn className="w-full" onClick={startLecture}><IconPlay size={14} /> Iniciar transmissão</Btn>
+            </div>
+          </Card>
+        ) : (
+          <Card><Empty icon={<IconMonitor size={24} />} title="Nenhuma palestra ativa"
+            sub="Assim que o professor ou coordenador iniciar a transmissão na sala, ela aparecerá aqui em tempo real, com chat, perguntas e enquetes." /></Card>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid xl:grid-cols-3 gap-4 max-w-[1400px] mx-auto">
+      <div className="xl:col-span-2 space-y-4">
+        <Card className="overflow-hidden">
+          <div className="relative aspect-video" style={{ background: "radial-gradient(ellipse 90% 130% at 50% -10%, rgba(77,107,254,.32), transparent 55%), radial-gradient(ellipse 50% 80% at 85% 110%, rgba(108,140,255,.12), transparent 60%), linear-gradient(160deg,#101A30 0%,#0B0E15 70%)" }}>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative">
+                <div className="w-28 h-28 sm:w-40 sm:h-40 rounded-full flex items-center justify-center text-4xl sm:text-5xl font-extrabold"
+                  style={{ background: "linear-gradient(135deg, rgba(77,107,254,.9), rgba(108,140,255,.6))", boxShadow: "0 0 80px rgba(77,107,254,.4)", color: "#fff" }}>
+                  {speakerIni}
+                </div>
+                <motion.div className="absolute -inset-5 rounded-full border" style={{ borderColor: "rgba(108,140,255,.3)" }}
+                  animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 3, repeat: Infinity }} />
+              </div>
+            </div>
+            <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)", backgroundSize: "44px 44px" }} />
+            <div className="absolute top-3 left-3 flex items-center gap-2 flex-wrap">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-extrabold bg-[#F16A5E] text-white"><span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />AO VIVO</span>
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-black/50 text-white backdrop-blur"><IconEye size={11} /> {net.participantCount}</span>
+              <span className="px-2.5 py-1 rounded-md text-[10px] font-bold bg-black/50 text-white backdrop-blur" style={{ fontFamily: "'JetBrains Mono', monospace" }}><Elapsed since={lect.startedAt} /></span>
+            </div>
+            <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
+              <div className="min-w-0">
+                <div className="text-white font-bold text-xs sm:text-sm truncate drop-shadow">{lect.speaker}</div>
+                <div className="text-white/70 text-[10px] truncate">{lect.title}</div>
+              </div>
+              <div className="flex gap-1.5 shrink-0">
+                {[["apoio", <IconUp key="u" size={12} />], ["duvida", <IconHelp key="h" size={12} />], ["insight", <IconZap key="z" size={12} />]].map(([k, ic]) => {
+                  const voters = data.reactions[k] || {};
+                  const on = !!voters[me.id];
+                  return (
+                    <button key={k} onClick={() => act.react(k, !on)} title={k}
+                      className="flex items-center gap-1 px-2 py-1.5 rounded-lg bg-black/50 backdrop-blur border text-[10px] font-bold transition-all active:scale-95"
+                      style={{ borderColor: on ? T.accent : "rgba(255,255,255,.12)", color: on ? "#93AAFF" : "#fff" }}>
+                      {ic} {voteCount(voters)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <Avatar name={lect.speaker} size={44} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-sm">{lect.speaker}</span>
+                <Pill color={T.accentSoft}>Transmitindo para {room}</Pill>
+              </div>
+              <div className="text-xs font-semibold text-[#8B94A8] mt-0.5">{lect.title}</div>
+              {lect.desc && <p className="text-xs text-[#8B94A8] mt-2 leading-relaxed">{lect.desc}</p>}
+              <div className="text-[10px] text-[#5A6376] mt-2">Iniciada por {lect.hostName} • chat, perguntas e enquetes sincronizados com todos os dispositivos da sala</div>
+            </div>
+            {isStaff && me.id === lect.hostId && (
+              <Btn size="sm" variant="danger" onClick={() => { act.endLecture(); notify("Transmissão encerrada para toda a sala.", "warn"); }} className="shrink-0"><IconX size={12} /> Encerrar</Btn>
+            )}
+          </div>
+        </Card>
+
+        {livePoll && (
+          <Card className="p-4 sm:p-5" style={{ borderColor: `${T.accent}44`, background: "linear-gradient(180deg, rgba(77,107,254,.06), #11151F 40%)" }}>
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <div className="flex items-center gap-2"><IconZap size={15} className="text-[#6C8CFF]" /><span className="text-sm font-bold">Enquete ao vivo</span>
+                <Pill color={T.ok}>{livePoll.options.reduce((acc, o) => acc + voteCount(o.voters), 0)} votos</Pill></div>
+              <span className="text-[10px] text-[#5A6376] font-semibold">por {livePoll.hostName}</span>
+            </div>
+            <div className="text-sm font-semibold mb-3">{livePoll.question}</div>
+            <div className="space-y-2">
+              {livePoll.options.map((o, i) => {
+                const total = livePoll.options.reduce((acc, x) => acc + voteCount(x.voters), 0) || 1;
+                const votes = voteCount(o.voters);
+                const pct = Math.round((votes / total) * 100);
+                const chosen = !!o.voters?.[me.id];
+                return (
+                  <button key={o.label + i} onClick={() => !chosen && !o.voters?.[me.id] && act.votePoll(livePoll.id, i)}
+                    disabled={!!livePoll.options.some((x) => x.voters?.[me.id])}
+                    className="w-full relative rounded-xl border overflow-hidden text-left transition-all disabled:cursor-default"
+                    style={{ borderColor: chosen ? T.accent : T.border, background: T.surface2 }}>
+                    <motion.div className="absolute inset-y-0 left-0" style={{ background: chosen ? "rgba(77,107,254,.28)" : "rgba(77,107,254,.12)" }}
+                      initial={false} animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }} />
+                    <div className="relative flex items-center justify-between px-4 py-2.5">
+                      <span className="text-xs font-semibold flex items-center gap-2">{chosen && <IconCheck size={12} className="text-[#6C8CFF]" />}{o.label}</span>
+                      <span className="text-xs font-extrabold text-[#93AAFF]" style={{ fontVariantNumeric: "tabular-nums" }}>{pct}%</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+      </div>
+
+      <div className="space-y-4">
+        <Card className="p-4 sm:p-5">
+          <SectionTitle icon={<IconHelp size={18} />} title="Perguntas em destaque" sub="Ordenadas pelos votos da audiência" />
+          {topQuestions.length === 0 ? (
+            <p className="text-[11px] text-[#5A6376] leading-relaxed py-4 text-center">Nenhuma pergunta aprovada ainda. Envie a primeira na aba Perguntas.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {topQuestions.map((q) => {
+                const on = !!q.voters?.[me.id];
+                return (
+                  <div key={q.id} className="p-3 rounded-xl border" style={{ borderColor: T.border, background: T.surface2 }}>
+                    <p className="text-xs font-medium leading-relaxed">{q.text}</p>
+                    <div className="flex items-center justify-between mt-2.5">
+                      <span className="text-[10px] text-[#5A6376] font-semibold truncate">{q.author}{q.turma ? ` • ${q.turma}` : ""}</span>
+                      <button onClick={() => act.voteQuestion(q.id, !on)}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95 shrink-0"
+                        style={on ? { background: T.accent, color: "#fff" } : { background: "#0B0E15", color: T.muted, border: `1px solid ${T.border}` }}>
+                        <IconUp size={11} /> {voteCount(q.voters)}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="mt-3 flex gap-2">
+            <input value={qText} onChange={(e) => setQText(e.target.value)} disabled={iAmMuted}
+              onKeyDown={(e) => { if (e.key === "Enter" && qText.trim() && !iAmMuted) { act.addQuestion(qText); setQText(""); } }}
+              placeholder={iAmMuted ? "Você foi silenciado pela moderação" : "Faça sua pergunta…"}
+              className="flex-1 min-w-0 rounded-xl px-3.5 py-2.5 text-xs border outline-none focus:border-[#4D6BFE] placeholder:text-[#5A6376] disabled:opacity-50"
+              style={{ background: "#0B0E15", borderColor: T.border, color: T.text }} />
+            <Btn size="sm" disabled={iAmMuted || !qText.trim()} onClick={() => { act.addQuestion(qText); setQText(""); }}><IconSend size={13} /></Btn>
+          </div>
+        </Card>
+
+        <ChatBox messages={data.chat} me={me} onSend={act.sendChat} onReport={act.reportChat} muted={iAmMuted} height={400} />
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   PÁGINA: ARENA DE DEBATE (sem re-renderização piscante)
+   ============================================================ */
+const ArgCard = ({ a, side, me, onVote }) => {
+  const on = !!a.voters?.[me.id];
+  const accent = side === "favor" ? T.accent : T.contra;
+  return (
+    <div className="p-4 rounded-xl border" style={{ borderColor: T.border, background: T.surface2 }}>
+      <div className="flex items-center gap-2.5 mb-2">
+        <Avatar name={a.author} size={30} />
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-bold truncate">{a.author}{a.authorId === me.id ? " (você)" : ""}</div>
+          <div className="text-[10px] text-[#5A6376]">{fmtWhen(a.ts)}</div>
+        </div>
+        <button onClick={() => onVote(a.id, !on)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-extrabold transition-all active:scale-95 shrink-0"
+          style={on ? { background: accent, color: side === "favor" ? "#fff" : "#0B0E15" } : { background: "#0B0E15", color: T.muted, border: `1px solid ${T.border}` }}>
+          <IconUp size={12} /> {voteCount(a.voters)}
+        </button>
+      </div>
+      <p className="text-xs leading-relaxed text-[#C6CDDB]">{a.text}</p>
+    </div>
+  );
+};
+
+const DebatePage = ({ data, me, isStaff, act, iAmMuted }) => {
+  const [form, setForm] = useState({ motion: "", favorTeam: "", contraTeam: "", minutes: "8" });
+  const [newArg, setNewArg] = useState("");
+  const [argSide, setArgSide] = useState("favor");
+  const deb = data.debate;
+
+  const favorArgs = useMemo(() => data.args.filter((a) => a.side === "favor").sort((x, y) => y.ts - x.ts), [data.args]);
+  const contraArgs = useMemo(() => data.args.filter((a) => a.side === "contra").sort((x, y) => y.ts - x.ts), [data.args]);
+  const favorVotes = favorArgs.reduce((acc, a) => acc + voteCount(a.voters), 0);
+  const contraVotes = contraArgs.reduce((acc, a) => acc + voteCount(a.voters), 0);
+  const totalVotes = favorVotes + contraVotes;
+  const favorPct = totalVotes > 0 ? Math.round((favorVotes / totalVotes) * 100) : 50;
+
+  const startDebate = () => {
+    if (!form.motion.trim()) return;
+    const mins = Math.max(1, parseInt(form.minutes, 10) || 8);
+    act.startDebate({
+      motion: form.motion.trim(),
+      favorTeam: form.favorTeam.trim() || "Lado A",
+      contraTeam: form.contraTeam.trim() || "Lado B",
+      endsAt: Date.now() + mins * 60000,
+      roundMinutes: mins,
+    });
+  };
+
+  if (!deb) {
+    return (
+      <div className="max-w-[680px] mx-auto">
+        {isStaff ? (
+          <Card className="p-5 sm:p-6">
+            <SectionTitle icon={<IconScale size={18} />} title="Abrir arena de debate" sub="Todos os dispositivos da sala veem a tese, os lados e o cronômetro sincronizados" />
+            <div className="space-y-3">
+              <div><label className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] mb-1.5 block">Tese em debate</label>
+                <Input textarea value={form.motion} onChange={(v) => setForm({ ...form, motion: v })} placeholder='Ex.: "A educação política deve ser disciplina obrigatória no Ensino Médio."' /></div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div><label className="text-[10px] font-bold tracking-widest uppercase text-[#6C8CFF] mb-1.5 block">Equipe a favor</label>
+                  <Input value={form.favorTeam} onChange={(v) => setForm({ ...form, favorTeam: v })} placeholder="Ex.: 3º A" /></div>
+                <div><label className="text-[10px] font-bold tracking-widest uppercase text-[#F5A524] mb-1.5 block">Equipe contra</label>
+                  <Input value={form.contraTeam} onChange={(v) => setForm({ ...form, contraTeam: v })} placeholder="Ex.: 2º B" /></div>
+              </div>
+              <div><label className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] mb-1.5 block">Minutos por turno</label>
+                <Input type="number" value={form.minutes} onChange={(v) => setForm({ ...form, minutes: v })} placeholder="8" /></div>
+              <Btn className="w-full" onClick={startDebate} disabled={!form.motion.trim()}><IconScale size={14} /> Abrir arena</Btn>
+            </div>
+          </Card>
+        ) : (
+          <Card><Empty icon={<IconScale size={24} />} title="Nenhum debate ativo"
+            sub="Quando o professor abrir uma arena, a tese, o cronômetro e os argumentos aparecerão aqui em tempo real para você participar." /></Card>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-[1400px] mx-auto space-y-4">
+      <Card className="p-4 sm:p-5 relative overflow-hidden" style={{ background: "linear-gradient(120deg, rgba(77,107,254,.10), #11151F 45%, rgba(245,165,36,.06))" }}>
+        <div className="flex flex-col md:flex-row md:items-center gap-4 justify-between">
+          <div className="flex items-start gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#4D6BFE,#6C8CFF)" }}>
+              <IconScale size={20} className="text-white" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <Pill color="#FF8A80" bg="#F16A5E1A"><span className="w-1.5 h-1.5 rounded-full bg-[#F16A5E] animate-pulse" />EM ANDAMENTO</Pill>
+                <Pill color={T.muted}>Rodada {deb.round}</Pill>
+              </div>
+              <h2 className="text-sm sm:text-base font-extrabold tracking-tight leading-snug">{deb.motion}</h2>
+              <div className="text-[11px] text-[#8B94A8] mt-1">{deb.favorTeam} (a favor) × {deb.contraTeam} (contra) • aberto por {deb.hostName}</div>
+            </div>
+          </div>
+          <div className="text-center shrink-0 px-5 py-3 rounded-2xl border self-start md:self-auto" style={{ borderColor: T.border, background: "rgba(11,14,21,.6)" }}>
+            <div className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376]">Tempo do turno</div>
+            <div className="text-3xl mt-1"><Countdown endsAt={deb.endsAt} /></div>
+            {isStaff && me.id === deb.hostId && (
+              <div className="flex gap-1.5 mt-2 justify-center">
+                <button onClick={() => act.extendDebate(deb.roundMinutes || 5)} className="text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors hover:border-[#4D6BFE88]" style={{ borderColor: T.border, color: T.accentSoft }}>+ turno</button>
+                <button onClick={act.endDebate} className="text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors hover:border-[#F16A5E88] hover:text-[#FF8A80]" style={{ borderColor: T.border, color: T.muted }}>Encerrar</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="flex justify-between text-[11px] font-bold mb-1.5">
+            <span style={{ color: T.accentSoft }}>A FAVOR • {favorPct}%</span>
+            <span className="text-[#5A6376] font-semibold hidden sm:inline">{totalVotes > 0 ? `${totalVotes} voto(s) nos argumentos` : "Termômetro calculado pelos votos reais"}</span>
+            <span style={{ color: T.contra }}>{100 - favorPct}% • CONTRA</span>
+          </div>
+          <div className="h-2.5 rounded-full overflow-hidden flex" style={{ background: "#0B0E15" }}>
+            <motion.div className="h-full" style={{ background: "linear-gradient(90deg,#3D5BEE,#6C8CFF)" }} initial={false} animate={{ width: `${favorPct}%` }} transition={{ duration: 0.6 }} />
+            <div className="h-full flex-1" style={{ background: "linear-gradient(90deg,#F5A524,#E08E0B)" }} />
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid lg:grid-cols-[1fr_280px_1fr] gap-4">
+        <Card className="p-4 sm:p-5" style={{ borderColor: `${T.accent}33` }}>
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${T.accent}22`, color: T.accentSoft }}><IconUp size={14} /></span>
+              <div className="min-w-0"><div className="text-sm font-extrabold truncate" style={{ color: T.accentSoft }}>A FAVOR</div><div className="text-[10px] text-[#5A6376] font-semibold truncate">{deb.favorTeam}</div></div>
+            </div>
+            <Pill color={T.accentSoft}>{favorVotes} apoios</Pill>
+          </div>
+          <div className="space-y-3">
+            {favorArgs.length === 0 && <p className="text-[11px] text-[#5A6376] text-center py-6 leading-relaxed">Nenhum argumento ainda. Publique o primeiro abaixo.</p>}
+            {favorArgs.map((a) => <ArgCard key={a.id} a={a} side="favor" me={me} onVote={act.voteArg} />)}
+          </div>
+        </Card>
+
+        <div className="space-y-4 order-first lg:order-none">
+          <Card className="p-4">
+            <div className="flex items-center gap-2 mb-3 text-sm font-bold"><IconShield size={15} className="text-[#34D399]" /> Regras de convivência</div>
+            <ul className="space-y-2">
+              {["Ataque o argumento, nunca a pessoa.", "Cite fontes: dados valem mais que opiniões.", "Respeite o tempo de fala de cada lado.", "Sem interrupções — aguarde sua réplica.", "Linguagem ofensiva gera advertência e remoção."].map((r, i) => (
+                <li key={r} className="flex gap-2 text-[11px] text-[#B8C0D0] leading-relaxed">
+                  <span className="w-4 h-4 rounded-md flex items-center justify-center text-[9px] font-extrabold shrink-0 mt-0.5" style={{ background: T.accentDim, color: T.accentSoft }}>{i + 1}</span>{r}
+                </li>
+              ))}
+            </ul>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] mb-1">Argumentos publicados</div>
+            <div className="flex items-center justify-center gap-3 text-xl font-extrabold" style={{ fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ color: T.accentSoft }}>{favorArgs.length}</span>
+              <span style={{ color: "#39415A" }}>×</span>
+              <span style={{ color: T.contra }}>{contraArgs.length}</span>
+            </div>
+          </Card>
+        </div>
+
+        <Card className="p-4 sm:p-5" style={{ borderColor: `${T.contra}33` }}>
+          <div className="flex items-center justify-between mb-4 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${T.contra}1F`, color: T.contra }}><IconX size={14} /></span>
+              <div className="min-w-0"><div className="text-sm font-extrabold truncate" style={{ color: T.contra }}>CONTRA</div><div className="text-[10px] text-[#5A6376] font-semibold truncate">{deb.contraTeam}</div></div>
+            </div>
+            <Pill color={T.contra}>{contraVotes} apoios</Pill>
+          </div>
+          <div className="space-y-3">
+            {contraArgs.length === 0 && <p className="text-[11px] text-[#5A6376] text-center py-6 leading-relaxed">Nenhum argumento ainda. Publique o primeiro abaixo.</p>}
+            {contraArgs.map((a) => <ArgCard key={a.id} a={a} side="contra" me={me} onVote={act.voteArg} />)}
+          </div>
+        </Card>
+      </div>
+
+      <Card className="p-4 sm:p-5">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+          <span className="text-sm font-bold flex items-center gap-2"><IconMsg size={14} className="text-[#6C8CFF]" /> Publicar argumento</span>
+          <div className="flex rounded-lg p-1 gap-1" style={{ background: "#0B0E15", border: `1px solid ${T.border}` }}>
+            <button onClick={() => setArgSide("favor")} className="px-3 py-1.5 rounded-md text-[11px] font-bold transition-all" style={argSide === "favor" ? { background: T.accent, color: "#fff" } : { color: T.muted }}>A FAVOR</button>
+            <button onClick={() => setArgSide("contra")} className="px-3 py-1.5 rounded-md text-[11px] font-bold transition-all" style={argSide === "contra" ? { background: T.contra, color: "#0B0E15" } : { color: T.muted }}>CONTRA</button>
+          </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input value={newArg} onChange={(e) => setNewArg(e.target.value)} disabled={iAmMuted}
+            onKeyDown={(e) => { if (e.key === "Enter" && newArg.trim() && !iAmMuted) { act.addArg(argSide, newArg.trim()); setNewArg(""); } }}
+            placeholder={iAmMuted ? "Você foi silenciado pela moderação" : "Escreva um argumento fundamentado, com dados ou exemplos…"}
+            className="flex-1 rounded-xl px-4 py-3 text-xs border outline-none focus:border-[#4D6BFE] placeholder:text-[#5A6376] disabled:opacity-50"
+            style={{ background: "#0B0E15", borderColor: T.border, color: T.text }} />
+          <Btn className="shrink-0" disabled={iAmMuted || !newArg.trim()} onClick={() => { act.addArg(argSide, newArg.trim()); setNewArg(""); }}>
+            <IconSend size={13} /> Publicar (+10 XP)
+          </Btn>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+/* ============================================================
+   PÁGINA: PERGUNTAS & RESPOSTAS
+   ============================================================ */
+const QnAPage = ({ data, me, isStaff, act, iAmMuted }) => {
+  const [text, setText] = useState("");
+  const [filter, setFilter] = useState("todas");
+  const [answering, setAnswering] = useState(null);
+  const [ansText, setAnsText] = useState("");
+
+  const statusMeta = { "ao-vivo": { label: "AO VIVO", color: "#FF8A80" }, pendente: { label: "NA MODERAÇÃO", color: "#F5A524" }, respondida: { label: "RESPONDIDA", color: "#34D399" } };
+  const list = (filter === "todas" ? data.questions : data.questions.filter((q) => q.status === filter)).slice().sort((a, b) => voteCount(b.voters) - voteCount(a.voters));
+
+  return (
+    <div className="max-w-[820px] mx-auto space-y-4">
+      <Card className="p-4 sm:p-5" style={{ borderColor: `${T.accent}33`, background: "linear-gradient(180deg, rgba(77,107,254,.07), #11151F 50%)" }}>
+        <div className="text-sm font-bold mb-2 flex items-center gap-2"><IconHelp size={15} className="text-[#6C8CFF]" /> {isStaff ? "Publicar pergunta" : "Faça sua pergunta"}</div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input value={text} onChange={(e) => setText(e.target.value)} disabled={iAmMuted}
+            onKeyDown={(e) => { if (e.key === "Enter" && text.trim() && !iAmMuted) { act.addQuestion(text); setText(""); } }}
+            placeholder={iAmMuted ? "Você foi silenciado pela moderação" : "Escreva uma pergunta clara e objetiva…"}
+            className="flex-1 rounded-xl px-4 py-3 text-sm border outline-none focus:border-[#4D6BFE] placeholder:text-[#5A6376] disabled:opacity-50"
+            style={{ background: "#0B0E15", borderColor: T.border, color: T.text }} />
+          <Btn className="shrink-0" disabled={iAmMuted || !text.trim()} onClick={() => { act.addQuestion(text); setText(""); }}><IconSend size={13} /> Enviar</Btn>
+        </div>
+        <p className="text-[10px] text-[#5A6376] mt-2">
+          {isStaff ? "Como docente, sua pergunta entra direto na fila ao vivo." : "Sua pergunta passa pela moderação do professor e aparece para toda a sala (+5 XP). Qualquer participante pode responder (+8 XP)."}
+        </p>
+      </Card>
+
+      <div className="flex gap-2 flex-wrap">
+        {[["todas", "Todas"], ["ao-vivo", "Ao vivo"], ["pendente", "Na moderação"], ["respondida", "Respondidas"]].map(([k, l]) => (
+          <button key={k} onClick={() => setFilter(k)} className="px-3.5 py-1.5 rounded-full text-[11px] font-bold border transition-all"
+            style={filter === k ? { background: T.accent, borderColor: T.accent, color: "#fff" } : { borderColor: T.border, background: T.surface, color: T.muted }}>
+            {l} ({k === "todas" ? data.questions.length : data.questions.filter((q) => q.status === k).length})
+          </button>
+        ))}
+      </div>
+
+      {list.length === 0 ? (
+        <Card><Empty icon={<IconHelp size={24} />} title="Nenhuma pergunta aqui"
+          sub="As perguntas enviadas por qualquer dispositivo da sala aparecem aqui em tempo real, com votos e respostas." /></Card>
+      ) : (
+        <div className="space-y-3">
+          {list.map((q) => {
+            const on = !!q.voters?.[me.id];
+            return (
+              <Card key={q.id} className="p-4 sm:p-5">
+                <div className="flex gap-3 sm:gap-4">
+                  <button onClick={() => act.voteQuestion(q.id, !on)}
+                    className="flex flex-col items-center gap-1 px-2.5 py-3 rounded-xl transition-all active:scale-95 shrink-0 self-start"
+                    style={on ? { background: T.accent, color: "#fff" } : { background: "#0B0E15", color: T.muted, border: `1px solid ${T.border}` }}>
+                    <IconUp size={15} />
+                    <span className="text-sm font-extrabold" style={{ fontVariantNumeric: "tabular-nums" }}>{voteCount(q.voters)}</span>
+                  </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                      <Pill color={statusMeta[q.status]?.color || T.muted}>{statusMeta[q.status]?.label || q.status}</Pill>
+                      <span className="text-[10px] text-[#5A6376] font-semibold">{q.author}{q.turma ? ` • ${q.turma}` : ""} • {fmtWhen(q.ts)}</span>
+                      {isStaff && (
+                        <span className="ml-auto flex gap-1.5">
+                          {q.status === "pendente" && <button onClick={() => act.qStatus(q.id, "ao-vivo")} className="text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors" style={{ borderColor: `${T.ok}55`, color: T.ok }}>Aprovar</button>}
+                          {q.status !== "respondida" && <button onClick={() => act.qStatus(q.id, "respondida")} className="text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors" style={{ borderColor: `${T.accent}55`, color: T.accentSoft }}>Responderam</button>}
+                          <button onClick={() => act.qRemove(q.id)} className="text-[10px] font-bold px-2 py-1 rounded-lg border transition-colors" style={{ borderColor: `${T.danger}55`, color: "#FF8A80" }}>Remover</button>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-semibold leading-relaxed">{q.text}</p>
+
+                    {q.answers.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {q.answers.map((an) => {
+                          const aon = !!an.voters?.[me.id];
+                          return (
+                            <div key={an.id} className="p-3 rounded-xl border-l-2" style={{ borderColor: T.accent, background: T.accentDim }}>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold text-[#93AAFF]">{an.author}{an.authorId === me.id ? " (você)" : ""}</span>
+                                <span className="text-[9px] text-[#5A6376]">{fmtWhen(an.ts)}</span>
+                                <button onClick={() => act.voteAnswer(q.id, an.id, !aon)}
+                                  className="ml-auto flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg transition-all active:scale-95"
+                                  style={aon ? { background: T.accent, color: "#fff" } : { background: "#0B0E15", color: T.muted }}>
+                                  <IconUp size={10} /> {voteCount(an.voters)}
+                                </button>
+                              </div>
+                              <p className="text-xs text-[#C6CDDB] leading-relaxed">{an.text}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="mt-3">
+                      {answering === q.id ? (
+                        <div className="flex gap-2">
+                          <input autoFocus value={ansText} onChange={(e) => setAnsText(e.target.value)} disabled={iAmMuted}
+                            onKeyDown={(e) => { if (e.key === "Enter" && ansText.trim()) { act.answerQuestion(q.id, ansText.trim()); setAnsText(""); setAnswering(null); } if (e.key === "Escape") setAnswering(null); }}
+                            placeholder="Escreva sua resposta…"
+                            className="flex-1 rounded-xl px-3.5 py-2 text-xs border outline-none focus:border-[#4D6BFE] placeholder:text-[#5A6376]"
+                            style={{ background: "#0B0E15", borderColor: T.border, color: T.text }} />
+                          <Btn size="sm" disabled={iAmMuted || !ansText.trim()} onClick={() => { act.answerQuestion(q.id, ansText.trim()); setAnsText(""); setAnswering(null); }}><IconSend size={12} /></Btn>
+                        </div>
+                      ) : (
+                        <button onClick={() => setAnswering(q.id)} disabled={iAmMuted}
+                          className="text-[11px] font-bold text-[#6C8CFF] hover:text-[#93AAFF] transition-colors disabled:opacity-40 flex items-center gap-1.5">
+                          <IconMsg size={12} /> Responder (+8 XP)
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ============================================================
+   PÁGINA: ENQUETES
+   ============================================================ */
+const PollsPage = ({ data, me, act, notify, isStaff }) => {
+  const [question, setQuestion] = useState("");
+  const [opts, setOpts] = useState(["", ""]);
+  const canCreate = question.trim().length > 0 && opts.filter((o) => o.trim()).length >= 2;
+
+  const create = () => {
+    if (!canCreate) return;
+    act.addPoll(question.trim(), opts.filter((o) => o.trim()).map((o) => o.trim()));
+    setQuestion(""); setOpts(["", ""]);
+  };
+
+  return (
+    <div className="max-w-[820px] mx-auto space-y-4">
+      <Card className="p-4 sm:p-5">
+        <SectionTitle icon={<IconPlus size={18} />} title="Criar enquete" sub="Qualquer participante pode criar; os votos chegam em tempo real para toda a sala" />
+        <div className="space-y-2.5">
+          <Input value={question} onChange={setQuestion} placeholder="Pergunta da enquete" />
+          {opts.map((o, i) => (
+            <div key={i} className="flex gap-2">
+              <Input value={o} onChange={(v) => setOpts(opts.map((x, j) => (j === i ? v : x)))} placeholder={`Opção ${i + 1}`} />
+              {opts.length > 2 && (
+                <button onClick={() => setOpts(opts.filter((_, j) => j !== i))} className="px-3 rounded-xl border text-[#5A6376] hover:text-[#FF8A80] transition-colors shrink-0" style={{ borderColor: T.border }}><IconTrash size={14} /></button>
+              )}
+            </div>
+          ))}
+          <div className="flex gap-2 flex-wrap">
+            {opts.length < 5 && <Btn size="sm" variant="ghost" onClick={() => setOpts([...opts, ""])}><IconPlus size={12} /> Adicionar opção</Btn>}
+            <Btn size="sm" className="ml-auto" disabled={!canCreate} onClick={create}><IconChart size={13} /> Publicar enquete</Btn>
+          </div>
+        </div>
+      </Card>
+
+      {data.polls.length === 0 ? (
+        <Card><Empty icon={<IconChart size={24} />} title="Nenhuma enquete criada"
+          sub="Crie a primeira enquete acima. Ela aparecerá aqui e poderá ser aberta durante a palestra para todos os dispositivos." /></Card>
+      ) : (
+        data.polls.map((p) => {
+          const total = p.options.reduce((acc, o) => acc + voteCount(o.voters), 0);
+          const iVoted = p.options.some((o) => o.voters?.[me.id]);
+          return (
+            <Card key={p.id} className="p-4 sm:p-6" style={!p.closed ? { borderColor: `${T.accent}44` } : {}}>
+              <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {p.closed ? <Pill color={T.muted}>ENCERRADA</Pill> : <Pill color="#FF8A80" bg="#F16A5E1A"><span className="w-1.5 h-1.5 rounded-full bg-[#F16A5E] animate-pulse" />AO VIVO</Pill>}
+                  <span className="text-[11px] text-[#5A6376] font-semibold flex items-center gap-1"><IconUsers size={11} /> {total} voto(s)</span>
+                  <span className="text-[10px] text-[#3D465C]">por {p.hostName} • {fmtWhen(p.ts)}</span>
+                </div>
+                {(isStaff || p.hostId === me.id) && !p.closed && (
+                  <Btn size="sm" variant="ghost" onClick={() => act.closePoll(p.id)}><IconCheck size={12} /> Encerrar</Btn>
+                )}
+              </div>
+              <h3 className="text-sm sm:text-base font-extrabold tracking-tight mb-4">{p.question}</h3>
+              <div className="space-y-2.5">
+                {p.options.map((o, i) => {
+                  const votes = voteCount(o.voters);
+                  const pct = total > 0 ? Math.round((votes / total) * 100) : 0;
+                  const chosen = !!o.voters?.[me.id];
+                  const leading = votes > 0 && votes === Math.max(...p.options.map((x) => voteCount(x.voters)));
+                  return (
+                    <button key={o.label + i} onClick={() => { if (!p.closed && !iVoted) { act.votePoll(p.id, i); notify("Voto registrado (+2 XP)", "xp"); } }}
+                      disabled={p.closed || iVoted}
+                      className="w-full relative rounded-xl border overflow-hidden text-left transition-all disabled:cursor-default"
+                      style={{ borderColor: chosen ? T.accent : T.border, background: T.surface2 }}>
+                      <motion.div className="absolute inset-y-0 left-0" initial={false} animate={{ width: `${pct}%` }} transition={{ duration: 0.6 }}
+                        style={{ background: chosen ? "rgba(77,107,254,.3)" : leading ? "rgba(77,107,254,.16)" : "rgba(139,148,168,.07)" }} />
+                      <div className="relative flex items-center justify-between px-4 py-3 gap-3">
+                        <span className="text-xs sm:text-sm font-semibold flex items-center gap-2 min-w-0">
+                          {chosen && <IconCheck size={13} className="text-[#6C8CFF] shrink-0" />}
+                          <span className="truncate">{o.label}</span>
+                          {leading && iVoted && <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-md shrink-0" style={{ background: `${T.accent}26`, color: T.accentSoft }}>LÍDER</span>}
+                        </span>
+                        <span className="text-sm font-extrabold shrink-0" style={{ color: chosen ? T.accentSoft : T.muted, fontVariantNumeric: "tabular-nums" }}>{iVoted || p.closed ? `${pct}%` : "—"}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+          );
+        })
+      )}
+    </div>
+  );
+};
+
+/* ============================================================
+   PÁGINA: MODERAÇÃO (professor / coordenador)
+   ============================================================ */
+const ModerationPage = ({ data, me, act, peers, participantCount }) => {
+  const pendingQs = data.questions.filter((q) => q.status === "pendente");
+  const openReports = data.reports.filter((r) => !r.handled);
+  const mutedCount = Object.values(data.mutes).filter(Boolean).length;
+  const peerList = Object.values(peers);
+
+  return (
+    <div className="max-w-[1100px] mx-auto space-y-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Perguntas pendentes", value: pendingQs.length, color: T.accentSoft, icon: <IconHelp size={15} /> },
+          { label: "Denúncias abertas", value: openReports.length, color: "#F5A524", icon: <IconFlag size={15} /> },
+          { label: "Participantes online", value: participantCount, color: T.ok, icon: <IconUsers size={15} /> },
+          { label: "Silenciados", value: mutedCount, color: T.danger, icon: <IconMic size={15} /> },
+        ].map((s) => (
+          <Card key={s.label} className="p-4 flex items-center gap-3">
+            <span className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${s.color}1A`, color: s.color }}>{s.icon}</span>
+            <div className="min-w-0">
+              <div className="text-xl font-extrabold" style={{ fontVariantNumeric: "tabular-nums" }}>{s.value}</div>
+              <div className="text-[10px] text-[#8B94A8] font-semibold truncate">{s.label}</div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card className="p-4 sm:p-5">
+          <SectionTitle icon={<IconLayers size={18} />} title="Fila de aprovação" sub="Perguntas de estudantes aguardando sua decisão"
+            right={<Pill color={pendingQs.length ? "#F5A524" : "#34D399"}>{pendingQs.length ? `${pendingQs.length} pendente(s)` : "Fila limpa"}</Pill>} />
+          {pendingQs.length === 0 ? (
+            <p className="text-[11px] text-[#5A6376] text-center py-8 leading-relaxed">Nenhuma pergunta aguardando moderação.<br />Perguntas enviadas por estudantes chegam aqui em tempo real.</p>
+          ) : (
+            <div className="space-y-3">
+              {pendingQs.map((q) => (
+                <div key={q.id} className="p-4 rounded-xl border" style={{ borderColor: T.border, background: T.surface2 }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Pill color={T.accentSoft}>PERGUNTA</Pill>
+                    <span className="text-[10px] text-[#5A6376] font-semibold ml-auto">{q.author}{q.turma ? ` • ${q.turma}` : ""} • {fmtWhen(q.ts)}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-[#C6CDDB] mb-3">"{q.text}"</p>
+                  <div className="flex gap-2 flex-wrap">
+                    <Btn size="sm" variant="ok" onClick={() => act.qStatus(q.id, "ao-vivo")}><IconCheck size={12} /> Aprovar</Btn>
+                    <Btn size="sm" variant="danger" onClick={() => act.qRemove(q.id)}><IconX size={12} /> Remover</Btn>
+                    {q.authorId !== me.id && (
+                      <Btn size="sm" variant="ghost" onClick={() => act.toggleMute(q.authorId, q.author, !data.mutes[q.authorId])}>
+                        <IconMic size={12} /> {data.mutes[q.authorId] ? "Liberar" : "Silenciar"}
+                      </Btn>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <div className="space-y-4">
+          <Card className="p-4 sm:p-5">
+            <SectionTitle icon={<IconFlag size={18} />} title="Denúncias" sub="Mensagens sinalizadas pelos participantes" />
+            {openReports.length === 0 ? (
+              <p className="text-[11px] text-[#5A6376] text-center py-6">Nenhuma denúncia aberta.</p>
+            ) : (
+              <div className="space-y-3">
+                {openReports.map((r) => (
+                  <div key={r.id} className="p-3.5 rounded-xl border" style={{ borderColor: `${T.danger}44`, background: "#F16A5E0A" }}>
+                    <div className="text-[10px] text-[#5A6376] font-semibold mb-1.5">Denunciada por {r.reporter} • {fmtWhen(r.ts)}</div>
+                    <p className="text-xs text-[#C6CDDB] italic mb-1">"{r.text}"</p>
+                    <div className="text-[10px] text-[#5A6376] mb-3">Autor: {r.author}</div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Btn size="sm" variant="ghost" onClick={() => act.resolveReport(r.id, "mantido")}><IconCheck size={12} /> Manter</Btn>
+                      <Btn size="sm" variant="danger" onClick={() => act.resolveReport(r.id, "removido", { chatId: r.chatId })}><IconTrash size={12} /> Remover</Btn>
+                      <Btn size="sm" variant="warn" onClick={() => act.resolveReport(r.id, "silenciado", { authorId: r.authorId })}><IconMic size={12} /> Silenciar autor</Btn>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card className="p-4 sm:p-5">
+            <SectionTitle icon={<IconUsers size={18} />} title="Participantes conectados" sub="Presença em tempo real na sala" />
+            <div className="space-y-2 max-h-56 overflow-y-auto">
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl border" style={{ borderColor: `${T.accent}44`, background: T.accentDim }}>
+                <Avatar name={me.name} size={28} />
+                <span className="text-xs font-semibold flex-1 truncate">{me.name} (você)</span>
+                <Pill color={T.accentSoft}>{me.role === "teacher" ? "PROFESSOR" : "COORDENADOR"}</Pill>
+              </div>
+              {peerList.length === 0 && <p className="text-[11px] text-[#5A6376] text-center py-3">Nenhum outro dispositivo conectado no momento.</p>}
+              {peerList.map((p, i) => (
+                <div key={p.uid || i} className="flex items-center gap-2.5 p-2.5 rounded-xl border" style={{ borderColor: T.border, background: "#0B0E15" }}>
+                  <Avatar name={p.name} size={28} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-semibold truncate block">{p.name}</span>
+                    <span className="text-[9px] text-[#5A6376]">{p.role === "student" ? "Estudante" : p.role === "teacher" ? "Professor" : "Coordenador"}{p.turma ? ` • ${p.turma}` : ""}</span>
+                  </div>
+                  {p.uid && (
+                    <button onClick={() => act.toggleMute(p.uid, p.name, !data.mutes[p.uid])}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all border shrink-0"
+                      style={data.mutes[p.uid] ? { background: "#F16A5E1A", color: "#FF8A80", borderColor: "#F16A5E44" } : { background: "#34D3991A", color: "#34D399", borderColor: "#34D39944" }}>
+                      {data.mutes[p.uid] ? "SILENCIADO" : "ATIVO"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <Card className="p-4 sm:p-5">
+            <SectionTitle icon={<IconBook size={18} />} title="Trilha de auditoria" sub="Registro real das ações de moderação" />
+            {data.modLog.length === 0 ? (
+              <p className="text-[11px] text-[#5A6376] text-center py-4">Nenhuma ação registrada nesta sala ainda.</p>
+            ) : (
+              <div className="space-y-2.5">
+                {data.modLog.map((l) => (
+                  <div key={l.id} className="flex items-start gap-2.5 text-[11px]">
+                    <span className="w-2 h-2 rounded-full mt-1 shrink-0" style={{ background: l.tone === "ok" ? "#34D399" : l.tone === "warn" ? "#F5A524" : "#F16A5E" }} />
+                    <div>
+                      <span className="font-semibold text-[#C6CDDB]">{l.action}</span>
+                      <span className="text-[#5A6376]"> • {l.who} • {fmtWhen(l.ts)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   PÁGINA: PONTUAÇÃO (XP real)
+   ============================================================ */
+const ScoringPage = ({ data, me, myXp }) => {
+  const board = useMemo(() => {
+    const map = { ...data.xpBoard };
+    map[me.id] = { userId: me.id, name: me.name, turma: me.turma || "", xp: Math.max(myXp, map[me.id]?.xp || 0) };
+    return Object.values(map).sort((a, b) => b.xp - a.xp);
+  }, [data.xpBoard, me, myXp]);
+
+  const myRank = board.findIndex((b) => b.userId === me.id) + 1;
+  const lvl = levelOf(myXp);
+  const podium = board.slice(0, 3);
+  const medal = ["#F5A524", "#B8C0D0", "#C98A5E"];
+  const rules = [
+    { action: "Pergunta enviada", xp: "+5", icon: <IconHelp size={13} /> },
+    { action: "Resposta publicada", xp: "+8", icon: <IconMsg size={13} /> },
+    { action: "Argumento na arena", xp: "+10", icon: <IconScale size={13} /> },
+    { action: "Voto em enquete", xp: "+2", icon: <IconChart size={13} /> },
+    { action: "Mensagem no chat", xp: "+1", icon: <IconSend size={13} /> },
+    { action: "Advertência da moderação", xp: "−20", icon: <IconFlag size={13} />, bad: true },
+  ];
+
+  return (
+    <div className="max-w-[920px] mx-auto space-y-4">
+      {podium.length > 0 && (
+        <div className="grid gap-3 items-end" style={{ gridTemplateColumns: `repeat(${Math.min(3, podium.length)}, minmax(0,1fr))` }}>
+          {Array.from({ length: Math.min(3, podium.length) }).map((_, col) => {
+            const order = [1, 0, 2];
+            const s = podium[order[col]];
+            if (!s) return null;
+            const idx = order[col];
+            const heights = [150, 116, 96];
+            return (
+              <div key={s.userId} className="rounded-2xl border p-4 text-center relative overflow-hidden"
+                style={{ height: heights[idx] + 84, borderColor: idx === 0 ? `${medal[idx]}66` : T.border, background: idx === 0 ? `linear-gradient(180deg, ${medal[idx]}14, ${T.surface})` : T.surface }}>
+                <span className="absolute top-3 left-1/2 -translate-x-1/2 text-[10px] font-extrabold tracking-widest" style={{ color: medal[idx] }}>{idx + 1}º LUGAR</span>
+                <div className="mt-6 flex justify-center"><Avatar name={s.name} size={idx === 0 ? 56 : 44} ring={idx === 0} /></div>
+                <div className="text-xs font-bold mt-3 leading-tight px-1 truncate">{s.name}{s.userId === me.id ? " (você)" : ""}</div>
+                {s.turma && <div className="text-[10px] text-[#5A6376]">{s.turma}</div>}
+                <div className="text-lg font-extrabold mt-1" style={{ color: idx === 0 ? medal[0] : T.accentSoft, fontVariantNumeric: "tabular-nums" }}>{s.xp} XP</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <Card className="p-4 sm:p-5 lg:col-span-2">
+          <SectionTitle icon={<IconAward size={18} />} title="Ranking da sala" sub="Pontuação real gerada pela participação" />
+          {board.length === 0 ? (
+            <Empty icon={<IconAward size={22} />} title="Ranking vazio" sub="Participe de palestras e debates para gerar seus primeiros pontos." />
+          ) : (
+            <div className="space-y-1.5">
+              {board.map((s, i) => (
+                <div key={s.userId} className="flex items-center gap-3 p-3 rounded-xl border"
+                  style={s.userId === me.id ? { borderColor: `${T.accent}55`, background: T.accentDim } : { borderColor: T.border, background: T.surface2 }}>
+                  <span className="w-6 text-center text-xs font-extrabold" style={{ color: i < 3 ? medal[i] : "#5A6376" }}>{i + 1}</span>
+                  <Avatar name={s.name} size={32} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate">{s.name}{s.userId === me.id ? " (você)" : ""}</div>
+                    <div className="text-[10px] text-[#5A6376]">{s.turma || (s.userId === me.id ? (me.role === "student" ? "Estudante" : "Docente") : "")}</div>
+                  </div>
+                  <div className="text-sm font-extrabold text-[#93AAFF] shrink-0" style={{ fontVariantNumeric: "tabular-nums" }}>{s.xp}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <div className="space-y-4">
+          <Card className="p-4 sm:p-5" style={{ borderColor: `${T.accent}44`, background: "linear-gradient(180deg, rgba(77,107,254,.08), #11151F 55%)" }}>
+            <div className="text-xs font-bold tracking-widest uppercase text-[#5A6376] mb-1">Seu progresso</div>
+            <div className="text-3xl font-extrabold" style={{ fontVariantNumeric: "tabular-nums" }}>{myXp} <span className="text-sm text-[#8B94A8] font-bold">XP</span></div>
+            <div className="text-[11px] font-bold text-[#93AAFF] mt-0.5">{lvl.name} • {myRank > 0 ? `${myRank}º na sala` : ""}</div>
+            {lvl.next && (
+              <>
+                <div className="h-2 rounded-full mt-3 overflow-hidden" style={{ background: "#0B0E15" }}>
+                  <motion.div className="h-full rounded-full" style={{ background: "linear-gradient(90deg,#4D6BFE,#6C8CFF)" }}
+                    initial={false} animate={{ width: `${Math.min(100, Math.round(((myXp - lvl.min) / (lvl.next.min - lvl.min)) * 100))}%` }} transition={{ duration: 0.8 }} />
+                </div>
+                <div className="text-[10px] text-[#8B94A8] mt-2">Faltam <span className="text-[#93AAFF] font-bold">{lvl.next.min - myXp} XP</span> para <span className="font-bold">{lvl.next.name}</span></div>
+              </>
+            )}
+          </Card>
+          <Card className="p-4 sm:p-5">
+            <div className="text-sm font-bold mb-3 flex items-center gap-2"><IconZap size={14} className="text-[#6C8CFF]" /> Como ganhar pontos</div>
+            <div className="space-y-2">
+              {rules.map((r) => (
+                <div key={r.action} className="flex items-center gap-2.5 text-[11px]">
+                  <span className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: r.bad ? "#F16A5E1A" : T.accentDim, color: r.bad ? "#FF8A80" : T.accentSoft }}>{r.icon}</span>
+                  <span className="flex-1 text-[#B8C0D0] leading-snug">{r.action}</span>
+                  <span className="font-extrabold shrink-0" style={{ color: r.bad ? "#FF8A80" : "#34D399" }}>{r.xp}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ============================================================
+   PÁGINA: PLANEJAMENTO (documentação do projeto)
+   ============================================================ */
+const PlanningPage = ({ setTab }) => {
+  const modules = [
+    { title: "Palestras ao Vivo", color: T.accent, icon: <IconMonitor size={18} />, items: ["Transmissão criada pelo docente e espelhada em todos os dispositivos da sala", "Chat em tempo real com moderação e denúncias", "Perguntas com votação popular e respostas dos participantes", "Enquetes relâmpago embutidas na transmissão", "Reações da audiência (apoio, dúvida, insight)"] },
+    { title: "Arenas de Debate", color: "#8B5CF6", icon: <IconScale size={18} />, items: ["Tese, lados e cronômetro sincronizados entre dispositivos", "Regras de convivência visíveis e aceitas ao entrar", "Termômetro da audiência calculado pelos votos reais", "Argumentos pró e contra com apoio por votação", "Controles do mediador: novo turno, prorrogar, encerrar"] },
+    { title: "Perguntas & Respostas", color: "#34D399", icon: <IconHelp size={18} />, items: ["Estudante pergunta, qualquer participante responde", "Fila de moderação para perguntas de estudantes", "Votos ordenam o destaque em tempo real", "Docente marca como respondida ou remove", "Histórico completo da sala"] },
+    { title: "Moderação & Votações", color: "#F5A524", icon: <IconShield size={18} />, items: ["Fila de aprovação de perguntas", "Denúncias de chat com manter / remover / silenciar", "Silenciar participantes conectados", "Trilha de auditoria das ações", "Enquetes com voto único por usuário e encerramento"] },
+  ];
+  const studentFlow = [
+    ["Cria conta e entra na sala", "Cadastro com papel (estudante/docente) e código da sala compartilhado pelo professor."],
+    ["Vê os eventos ao vivo", "Palestra e debate abertos pelo docente aparecem instantaneamente no seu dispositivo."],
+    ["Participa", "Pergunta, responde colegas, argumenta na arena, vota em enquetes e reage."],
+    ["Passa pela moderação", "Perguntas entram na fila; conteúdo pode ser aprovado, removido ou silenciado."],
+    ["Reconhecimento", "Acumula XP real, sobe no ranking da sala e evolui de nível cívico."],
+  ];
+  const teacherFlow = [
+    ["Cria a sala", "Gera o código e compartilha com a turma; entra como professor ou coordenador."],
+    ["Abre o evento", "Inicia palestra ao vivo ou arena de debate com tese, lados e tempo."],
+    ["Conduz em tempo real", "Vê perguntas, respostas e enquetes chegando dos dispositivos dos alunos."],
+    ["Modera", "Aprova perguntas, resolve denúncias, silencia participantes e registra tudo."],
+    ["Encerra e avalia", "Fecha turno/debate/transmissão e acompanha o ranking de participação."],
+  ];
+  const arch = [
+    ["Frontend", "React + Tailwind + Framer Motion (este protótipo); versão mobile via React Native."],
+    ["Tempo real", "Eventos publicados via MQTT sobre WebSocket; cada dispositivo aplica os eventos localmente (event sourcing idempotente)."],
+    ["Presença", "Heartbeat por sala para contar participantes conectados e permitir silenciar por pessoa."],
+    ["Persistência", "Sessão, contas e estado da sala em armazenamento local; em produção: PostgreSQL + Redis."],
+    ["Moderação", "Fila humana com trilha de auditoria; em produção, classificador de linguagem PT-BR apoia a triagem."],
+  ];
+  const Step = ({ s, i, color, last }) => (
+    <div className="flex-1 min-w-[160px]">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-extrabold shrink-0" style={{ background: `${color}22`, color, border: `1px solid ${color}55` }}>{i + 1}</span>
+        {!last && <span className="hidden sm:block flex-1 h-px" style={{ background: `linear-gradient(90deg, ${color}66, transparent)` }} />}
+      </div>
+      <div className="text-xs font-bold mb-1">{s[0]}</div>
+      <p className="text-[10px] text-[#8B94A8] leading-relaxed">{s[1]}</p>
+    </div>
+  );
+  return (
+    <div className="max-w-[1100px] mx-auto space-y-5">
+      <div>
+        <SectionTitle icon={<IconLayers size={18} />} title="Mapeamento de funcionalidades" sub="Quatro módulos centrais do produto" />
+        <div className="grid sm:grid-cols-2 gap-4">
+          {modules.map((m) => (
+            <Card key={m.title} className="p-5">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `${m.color}1A`, color: m.color }}>{m.icon}</span>
+                <span className="font-bold text-sm">{m.title}</span>
+              </div>
+              <ul className="space-y-1.5">
+                {m.items.map((f) => (
+                  <li key={f} className="flex gap-2 text-[11px] text-[#B8C0D0] leading-relaxed">
+                    <IconCheck size={12} className="mt-0.5 shrink-0" style={{ color: m.color }} /> {f}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <Card className="p-5">
+          <SectionTitle icon={<IconUsers size={18} />} title="User Flow — Estudante" sub="Jornada real durante palestra ou debate" />
+          <div className="flex flex-wrap gap-y-4">{studentFlow.map((s, i) => <Step key={s[0]} s={s} i={i} color={T.accent} last={i === studentFlow.length - 1} />)}</div>
+        </Card>
+        <Card className="p-5">
+          <SectionTitle icon={<IconShield size={18} />} title="User Flow — Professor / Coordenador" sub="Jornada de condução e moderação" />
+          <div className="flex flex-wrap gap-y-4">{teacherFlow.map((s, i) => <Step key={s[0]} s={s} i={i} color="#F5A524" last={i === teacherFlow.length - 1} />)}</div>
+        </Card>
+      </div>
+
+      <Card className="p-5">
+        <SectionTitle icon={<IconGrid size={18} />} title="Arquitetura de sincronização" sub="Como dois dispositivos enxergam a mesma sala" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {arch.map(([t, d]) => (
+            <div key={t} className="p-3.5 rounded-xl border" style={{ borderColor: T.border, background: T.surface2 }}>
+              <div className="text-[10px] font-extrabold tracking-widest uppercase text-[#6C8CFF] mb-1.5">{t}</div>
+              <p className="text-[11px] text-[#B8C0D0] leading-relaxed">{d}</p>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 p-3.5 rounded-xl border text-[11px] text-[#8B94A8] leading-relaxed" style={{ borderColor: `${T.accent}33`, background: T.accentDim }}>
+          <span className="font-bold text-[#93AAFF]">Como testar agora:</span> abra o app em dois dispositivos (ou duas abas), entre com contas diferentes na mesma sala usando o código exibido no topo. Inicie uma palestra como professor em um dispositivo e veja-a aparecer no outro; envie uma pergunta como aluno e responda-a — a resposta surge no dispositivo do professor em tempo real.
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+/* ============================================================
+   PÁGINA: DESIGN SYSTEM
+   ============================================================ */
+const DesignSystemPage = () => {
+  const colors = [
+    { name: "Background Base", hex: "#0B0E15", use: "Fundo principal" },
+    { name: "Surface", hex: "#11151F", use: "Cards e painéis" },
+    { name: "Surface Elevated", hex: "#161C2A", use: "Itens internos" },
+    { name: "Border", hex: "#1F2635", use: "Divisores e contornos" },
+    { name: "Accent Blue", hex: "#4D6BFE", use: "CTAs e destaques" },
+    { name: "Accent Soft", hex: "#6C8CFF", use: "Links e ícones ativos" },
+    { name: "Text Primary", hex: "#E8EBF2", use: "Títulos e corpo" },
+    { name: "Text Muted", hex: "#8B94A8", use: "Texto secundário" },
+    { name: "Pró / A Favor", hex: "#4D6BFE", use: "Lado positivo" },
+    { name: "Contra", hex: "#F5A524", use: "Lado oposto" },
+    { name: "Success", hex: "#34D399", use: "Aprovações e XP" },
+    { name: "Danger / Live", hex: "#F16A5E", use: "Ao vivo e remoções" },
+  ];
+  return (
+    <div className="max-w-[960px] mx-auto space-y-5">
+      <Card className="p-5">
+        <SectionTitle icon={<IconDroplet size={18} />} title="Paleta de cores" sub="Dark mode com acentos azuis — inspiração DeepSeek" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {colors.map((c) => (
+            <div key={c.hex + c.name} className="rounded-xl border overflow-hidden" style={{ borderColor: T.border }}>
+              <div className="h-14" style={{ background: c.hex, borderBottom: `1px solid ${T.border}` }} />
+              <div className="p-3 bg-[#11151F]">
+                <div className="text-[11px] font-bold truncate">{c.name}</div>
+                <div className="text-[10px] font-mono font-bold" style={{ color: T.accentSoft, fontFamily: "'JetBrains Mono', monospace" }}>{c.hex}</div>
+                <div className="text-[9px] text-[#5A6376] mt-0.5">{c.use}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <SectionTitle icon={<IconBook size={18} />} title="Tipografia" sub="Inter (interface) + JetBrains Mono (dados e cronômetros)" />
+        <div className="space-y-3">
+          {[
+            ["Display / H1", "text-2xl font-extrabold tracking-tight", "Democracia na Prática"],
+            ["Título / H2", "text-lg font-bold", "Arena de Debate"],
+            ["Corpo", "text-sm", "A educação política forma cidadãos capazes de argumentar com dados e respeito."],
+            ["Legenda", "text-xs text-[#8B94A8]", "Sala AGX-XXXX • participantes conectados"],
+          ].map(([l, c, s]) => (
+            <div key={l} className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-6 py-2 border-b last:border-0" style={{ borderColor: T.border }}>
+              <span className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] sm:w-28 shrink-0">{l}</span>
+              <span className={c}>{s}</span>
+            </div>
+          ))}
+          <div className="py-2">
+            <span className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] block mb-1">Mono / dados</span>
+            <span className="text-xl font-extrabold text-[#93AAFF]" style={{ fontFamily: "'JetBrains Mono', monospace" }}>07:53 • 1.240 XP</span>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <SectionTitle icon={<IconGrid size={18} />} title="Componentes" sub="Botões, badges, inputs e princípios de layout" />
+        <div className="grid sm:grid-cols-2 gap-5">
+          <div className="space-y-3">
+            <div className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376]">Botões</div>
+            <div className="flex gap-2 flex-wrap">
+              <Btn size="sm">Primário</Btn>
+              <Btn size="sm" variant="ghost">Secundário</Btn>
+              <Btn size="sm" variant="ok">Aprovar</Btn>
+              <Btn size="sm" variant="danger">Remover</Btn>
+            </div>
+            <div className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] pt-2">Badges de status</div>
+            <div className="flex gap-2 flex-wrap">
+              <Pill color="#FF8A80" bg="#F16A5E1A"><span className="w-1.5 h-1.5 rounded-full bg-[#F16A5E]" />AO VIVO</Pill>
+              <Pill color="#34D399">APROVADO</Pill>
+              <Pill color="#F5A524">NA MODERAÇÃO</Pill>
+              <Pill color="#6C8CFF">A FAVOR</Pill>
+            </div>
+            <div className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376] pt-2">Input</div>
+            <Input value="" onChange={() => {}} placeholder="Campo de texto padrão…" />
+          </div>
+          <div className="space-y-3 text-[11px] text-[#B8C0D0] leading-relaxed">
+            <div className="text-[10px] font-bold tracking-widest uppercase text-[#5A6376]">Princípios de layout</div>
+            <ul className="space-y-2">
+              {[
+                "Raio padrão de 12–16 px e bordas de 1 px sutis, sem sombras pesadas.",
+                "Hierarquia por luminosidade: fundo, cards e elementos internos em três tons de cinza-escuro.",
+                "Azul usado com parcimônia: ações primárias, estados ativos e dados positivos.",
+                "Âmbar reservado ao lado contra; vermelho exclusivo para AO VIVO e ações destrutivas.",
+                "Mobile first: navegação inferior fixa, alvos de toque amplos e grades que empilham.",
+                "Movimento com Framer Motion: transições curtas, barras animadas e feedback de toque.",
+                "Apenas símbolos vetoriais como ícones — sem emojis na interface.",
+              ].map((p) => (
+                <li key={p} className="flex gap-2"><span className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ background: T.accent }} />{p}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+/* ============================================================
+   ROOT
+   ============================================================ */
+export default function App() {
+  const [session, setSession] = useState(loadSession);
+  const [googleReturn, setGoogleReturn] = useState(false);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const flag = params.get("gauth") === "1" || sessionStorage.getItem("agoraedu_gauth") === "1";
+      if (flag) {
+        setGoogleReturn(true);
+        sessionStorage.removeItem("agoraedu_gauth");
+        params.delete("gauth");
+        const clean = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+        window.history.replaceState({}, "", clean);
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleAuth = (user) => {
+    const s = { id: user.id, name: user.name, email: user.email, role: user.role, turma: user.turma || "", pass: user.pass, google: !!user.google, room: null };
+    saveSession(s);
+    setSession(s);
+    setGoogleReturn(false);
+  };
+  const handleLogout = () => { saveSession(null); setSession(null); };
+  const handleJoinRoom = (room) => {
+    const s = { ...session, room: room.toUpperCase() };
+    saveSession(s); setSession(s);
+  };
+  const handleChangeRoom = () => {
+    const s = { ...session, room: null };
+    saveSession(s); setSession(s);
+  };
+
+  if (!session) return (<><GlobalStyles /><AuthScreen onAuth={handleAuth} googleReturn={googleReturn} /></>);
+  if (!session.room) return (<><GlobalStyles /><RoomGate session={session} onJoin={handleJoinRoom} onLogout={handleLogout} /></>);
+  return (<><GlobalStyles /><SyncedApp key={`${session.id}-${session.room}`} session={session} onLogout={handleLogout} onChangeRoom={handleChangeRoom} /></>);
+}
+
+/* ---------- Estilos globais ---------- */
+const GlobalStyles = () => {
+  useEffect(() => {
+    if (document.getElementById("agora-fonts")) return;
+    const l1 = document.createElement("link");
+    l1.id = "agora-fonts"; l1.rel = "stylesheet";
+    l1.href = "https://cdn.jsdelivr.net/fontsource/css/inter@latest/index.css";
+    const l2 = document.createElement("link");
+    l2.rel = "stylesheet";
+    l2.href = "https://cdn.jsdelivr.net/fontsource/css/jetbrains-mono@latest/index.css";
+    document.head.appendChild(l1); document.head.appendChild(l2);
+    const st = document.createElement("style");
+    st.textContent = `
+      html,body{background:#0B0E15;margin:0;font-family:'Inter',system-ui,-apple-system,sans-serif;}
+      *{scrollbar-width:thin;scrollbar-color:#1F2635 transparent;}
+      *::-webkit-scrollbar{width:6px;height:6px;}
+      *::-webkit-scrollbar-thumb{background:#1F2635;border-radius:8px;}
+      *::-webkit-scrollbar-track{background:transparent;}
+      ::selection{background:rgba(77,107,254,.4);color:#fff;}
+      input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+    `;
+    document.head.appendChild(st);
+  }, []);
+  return null;
+};
